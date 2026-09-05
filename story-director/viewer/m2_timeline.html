@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>模块2 · 剧本时间轴</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #panel { width: 380px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  .desc { font-size: 12px; color: #8b93a5; margin-bottom: 10px; line-height: 1.6; }
+  #playBtn { width: 100%; padding: 10px; background: #3d5afe; border: none; color: white; font-size: 14px; border-radius: 8px; cursor: pointer; }
+  #bar { height: 14px; background: #232734; border-radius: 7px; margin: 12px 0 4px; position: relative; overflow: hidden; }
+  #fill { height: 100%; width: 0; background: linear-gradient(90deg,#3d5afe,#7c9bff); }
+  .mark { position: absolute; top: 0; width: 2px; height: 100%; background: #ffb35c; }
+  #clock { font-size: 22px; font-family: Consolas, monospace; color: #9db8ff; }
+  #log { font-size: 12px; color: #8b93a5; margin-top: 10px; max-height: 260px; overflow-y: auto; }
+  #log div { padding: 3px 0; border-bottom: 1px dashed #232734; }
+  #log b { color: #ffb35c; font-family: Consolas, monospace; font-weight: normal; }
+  #subtitle { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); background: rgba(0,0,0,.62);
+              color: #fff; font-size: 20px; padding: 10px 22px; border-radius: 10px; white-space: nowrap; display: none; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<div id="stage"><div id="subtitle"></div></div>
+<div id="panel">
+  <h1>模块 2 · 剧本时间轴</h1>
+  <div class="desc">剧本 JSON 里每条事件带一个时间 t（秒）。本页按真实时间触发动作事件，验证：触发是否精准、衔接是否自然。<br>当前剧本：22 秒 / 10 个事件（打招呼→拍手→走路→舞蹈→鞠躬）</div>
+  <button id="playBtn">▶ 播放剧本</button>
+  <div id="bar"><div id="fill"></div></div>
+  <div id="clock">0.0s / 22.0s</div>
+  <div id="log"></div>
+</div>
+<script type="module">
+import { createStage, TEST_STORY } from './common.js';
+
+const $ = (s) => document.querySelector(s);
+const stage = await createStage('#stage');
+stage.state.onStatus = (t) => { $('#status') && ($('#status').textContent = t); };
+await stage.loadModel('角色1.vrm');
+await stage.playAnim('idle_loop', true);
+
+const events = [...TEST_STORY.events].sort((a, b) => a.t - b.t);
+const DUR = TEST_STORY.duration;
+// 进度条刻度
+for (const e of events) {
+  const m = document.createElement('div');
+  m.className = 'mark';
+  m.style.left = (e.t / DUR * 100) + '%';
+  $('#bar').appendChild(m);
+}
+
+let playing = false, t = 0, idx = 0, last = 0;
+const fired = new Set();
+
+function fire(e) {
+  if (e.type === 'anim') {
+    stage.playAnim(e.anim, !!e.loop);
+    log(e.t, '动作 → ' + e.anim + (e.loop ? '（循环）' : ''));
+  } else if (e.type === 'subtitle') {
+    const sub = $('#subtitle');
+    sub.textContent = e.text;
+    sub.style.display = 'block';
+    setTimeout(() => { if (sub.textContent === e.text) sub.style.display = 'none'; }, (e.hold || 3) * 1000);
+    log(e.t, '字幕 → ' + e.text);
+  }
+}
+function log(t, msg) {
+  const d = document.createElement('div');
+  d.innerHTML = `<b>${t.toFixed(1)}s</b> ${msg}`;
+  $('#log').prepend(d);
+}
+
+$('#playBtn').addEventListener('click', () => {
+  if (playing) return;
+  playing = true; t = 0; idx = 0; fired.clear();
+  $('#log').innerHTML = '';
+  $('#subtitle').style.display = 'none';
+  stage.playAnim('idle_loop', true);
+  $('#playBtn').textContent = '播放中…（R 键重播）';
+});
+
+window.setInterval(() => {
+  if (!playing) return;
+  const now = performance.now();
+  const dt = Math.min((now - last) / 1000, 0.1);
+  last = now;
+  t += dt;
+  while (idx < events.length && events[idx].t <= t) {
+    if (!fired.has(idx)) { fire(events[idx]); fired.add(idx); }
+    idx++;
+  }
+  $('#fill').style.width = Math.min(100, t / DUR * 100) + '%';
+  $('#clock').textContent = t.toFixed(1) + 's / ' + DUR.toFixed(1) + 's';
+  if (t >= DUR) {
+    playing = false;
+    $('#playBtn').textContent = '▶ 再播一次';
+    log(DUR, '—— 剧本播完 ——');
+  }
+}, 40);
+
+window.addEventListener('keydown', (e) => { if (e.key === 'r' || e.key === 'R') $('#playBtn').click(); });
+</script>
+</body>
+</html>

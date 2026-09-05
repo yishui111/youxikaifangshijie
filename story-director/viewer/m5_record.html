@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>模块5 · 渲染出片</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #rec { position: absolute; left: 14px; top: 14px; background: rgba(0,0,0,.6); color: #ff6b6b;
+         font-size: 14px; padding: 6px 14px; border-radius: 6px; display: none; }
+  #panel { width: 380px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  .desc { font-size: 12px; color: #8b93a5; margin-bottom: 10px; line-height: 1.6; }
+  button { width: 100%; padding: 11px; background: #232734; color: #dde2ea; border: 1px solid #333949;
+           border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-size: 13px; }
+  button:hover { border-color: #4a5470; }
+  #recBtn { background: #c0392b; border: none; color: white; font-size: 14px; }
+  #recBtn:hover { background: #e05040; }
+  a.dl { display: block; background: #1f4d2e; border: 1px solid #2e6b40; color: #6ee7a0; border-radius: 8px;
+         padding: 10px; margin-bottom: 8px; text-align: center; text-decoration: none; font-size: 13px; }
+  #status { font-size: 12px; color: #8b93a5; margin-top: 8px; }
+  #subtitle { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); background: rgba(0,0,0,.62);
+              color: #fff; font-size: 20px; padding: 10px 22px; border-radius: 10px; white-space: nowrap; display: none; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<div id="stage"><div id="rec">● REC</div><div id="subtitle"></div></div>
+<div id="panel">
+  <h1>模块 5 · 渲染出片</h1>
+  <div class="desc">浏览器实时录制画面+声音，输出 .webm 视频文件（可直接导入剪映/PR）。<br>录制内容 = 测试剧本全程（22 秒）：打招呼→拍手→走路→舞蹈→鞠躬，含字幕。</div>
+  <button id="recBtn">● 开始录制并播放剧本（22 秒）</button>
+  <div id="status"></div>
+  <div id="downloads"></div>
+</div>
+<script type="module">
+import { createStage, TEST_STORY } from './common.js';
+
+const $ = (s) => document.querySelector(s);
+const stage = await createStage('#stage');
+await stage.loadModel('角色1.vrm');
+await stage.playAnim('idle_loop', true);
+
+const events = [...TEST_STORY.events].sort((a, b) => a.t - b.t);
+const DUR = TEST_STORY.duration;
+let rec = null, chunks = [], recStream = null;
+
+$('#recBtn').addEventListener('click', async () => {
+  if (rec) return;
+  $('#downloads').innerHTML = '';
+  // 1) 画面流
+  const canvasStream = stage.renderer.domElement.captureStream(30);
+  // 2) 声音流（播放语音，接入录制）
+  const ac = new AudioContext();
+  const dest = ac.createMediaStreamDestination();
+  const events2 = [...events];
+
+  recStream = new MediaStream([...canvasStream.getVideoTracks(), ...dest.stream.getAudioTracks()]);
+  chunks = [];
+  rec = new MediaRecorder(recStream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8_000_000 });
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.className = 'dl';
+    a.href = url;
+    a.download = 'story_preview.webm';
+    a.textContent = '⬇ 下载成片 story_preview.webm (' + Math.round(blob.size / 1024) + ' KB)';
+    $('#downloads').appendChild(a);
+    $('#rec').style.display = 'none';
+    rec = null;
+  };
+  rec.start();
+
+  $('#rec').style.display = 'block';
+  $('#status').textContent = '录制中：播放剧本…';
+
+  // 3) 播放剧本（动作 + 字幕 + 语音都走 dest 扬声器与录制流）
+  let t = 0, idx = 0, last = performance.now();
+  stage.playAnim('idle_loop', true);
+  await new Promise((resolve) => {
+    const iv = setInterval(() => {
+      const now = performance.now();
+      t += Math.min((now - last) / 1000, 0.1);
+      last = now;
+      while (idx < events2.length && events2[idx].t <= t) {
+        const e = events2[idx];
+        if (e.type === 'anim') stage.playAnim(e.anim, !!e.loop);
+        if (e.type === 'subtitle') {
+          const sub = $('#subtitle');
+          sub.textContent = e.text;
+          sub.style.display = 'block';
+          setTimeout(() => { if (sub.textContent === e.text) sub.style.display = 'none'; }, 3500);
+        }
+        idx++;
+      }
+      if (t >= DUR) { clearInterval(iv); resolve(); }
+    }, 40);
+  });
+  await new Promise(r => setTimeout(r, 800));
+  rec.stop();
+  $('#status').textContent = '录制完成，文件在下方 ↓';
+});
+</script>
+</body>
+</html>

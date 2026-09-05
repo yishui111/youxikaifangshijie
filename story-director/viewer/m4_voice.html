@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>模块4 · 语音 + 字幕 + 口型</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #bigsub { position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%); background: rgba(0,0,0,.62);
+            color: #fff; font-size: 22px; padding: 12px 26px; border-radius: 10px; white-space: nowrap; display: none; }
+  #panel { width: 380px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  .desc { font-size: 12px; color: #8b93a5; margin-bottom: 10px; line-height: 1.6; }
+  button { width: 100%; padding: 10px; background: #232734; color: #dde2ea; border: 1px solid #333949;
+           border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-size: 13px; text-align: left; }
+  button:hover { border-color: #4a5470; }
+  button b { color: #9db8ff; }
+  label { display: flex; gap: 8px; align-items: center; font-size: 13px; margin: 10px 0; }
+  #mouthBar { height: 8px; background: #232734; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+  #mouthFill { height: 100%; width: 0; background: #6ee7a0; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<div id="stage"><div id="bigsub"></div></div>
+<div id="panel">
+  <h1>模块 4 · 语音 + 字幕 + 口型</h1>
+  <div class="desc">TTS 台词 + 字幕同步 + 张嘴口型（驱动模型的 aa 表情）。点击台词试听。<br>正式使用时把 tts_*.wav 换成真人/AI 配音即可，管线不变。</div>
+  <label><input type="checkbox" id="lipChk" checked> 口型同步（说话时张嘴）</label>
+  <div id="mouthBar"><div id="mouthFill"></div></div>
+  <div style="margin-top:10px">
+    <button data-id="DEMO1"><b>风：</b>你们好！我叫小风，是第一次来到帕米尔大陆。</button>
+    <button data-id="DEMO2"><b>雪：</b>欢迎你，小风。我叫雪，这位是夜，我们在这里等你很久了。</button>
+    <button data-id="DEMO3"><b>夜：</b>你好。旅途才刚刚开始，请多指教。</button>
+  </div>
+  <h1 style="font-size:13px;color:#8b93a5;margin-top:14px">成片语音库（story_10min 台词抽样）</h1>
+  <div id="longLines"></div>
+  <div id="status" style="font-size:12px;color:#8b93a5;margin-top:10px"></div>
+</div>
+<script type="module">
+import { createStage } from './common.js';
+
+const $ = (s) => document.querySelector(s);
+const stage = await createStage('#stage');
+await stage.loadModel('角色1.vrm');
+await stage.playAnim('idle_loop', true);
+
+const LINES = [
+  { id: 'L000', who: '风', text: '你们好呀！我叫阿风，第一次走这条商道，差点在草海里迷路。' },
+  { id: 'L001', who: '雪', text: '欢迎，阿风。我叫雪，受商会之托，要前往北方的望风塔。' },
+  { id: 'L002', who: '夜', text: '护卫，夜。前面的路不太平，人多有个照应。' },
+];
+for (const l of LINES) {
+  const b = document.createElement('button');
+  b.innerHTML = `<b>${l.who}：</b>${l.text}`;
+  b.addEventListener('click', () => speak('/voice/tts_' + l.id + '.wav', l.text));
+  $('#longLines').appendChild(b);
+}
+
+let audio = null, rafId = 0;
+async function speak(file, text, who = '') {
+  stopAudio();
+  const sub = $('#bigsub');
+  sub.textContent = (who ? who + '：' : '') + text;
+  sub.style.display = 'block';
+  audio = new Audio(file);
+  audio.play();
+  $('#status').textContent = '播放中…';
+  // 口型：说话期间用 aa 表情模拟音节开合
+  const start = performance.now();
+  const tick = () => {
+    if (!audio || audio.paused || audio.ended) {
+      if (window.__vrm?.expressionManager) window.__vrm.expressionManager.setValue('aa', 0);
+      cancelAnimationFrame(rafId);
+      $('#mouthFill').style.width = '0%';
+      sub.style.display = 'none';
+      $('#status').textContent = '播放结束';
+      return;
+    }
+    const t = (performance.now() - start) / 1000;
+    if ($('#lipChk').checked && window.__vrm?.expressionManager) {
+      const open = Math.min(1, 0.2 + 0.8 * Math.abs(Math.sin(t * 11)) * (0.55 + 0.45 * Math.sin(t * 2.9)));
+      window.__vrm.expressionManager.setValue('aa', open);
+      $('#mouthFill').style.width = Math.round(open * 100) + '%';
+    }
+    rafId = requestAnimationFrame(tick);
+  };
+  tick();
+}
+window.speak = speak;
+
+function stopAudio() {
+  if (audio) { audio.pause(); audio.currentTime = 0; }
+  cancelAnimationFrame(rafId);
+  if (window.__vrm?.expressionManager) window.__vrm.expressionManager.setValue('aa', 0);
+}
+
+document.querySelectorAll('#panel button[data-id]').forEach(b =>
+  b.addEventListener('click', () => speak('/voice/tts_' + b.dataset.id + '.wav', b.textContent.replace(/^[^：]*：/, ''))));
+</script>
+</body>
+</html>

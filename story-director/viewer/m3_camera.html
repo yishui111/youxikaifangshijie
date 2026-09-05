@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>模块3 · 镜头语言</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #panel { width: 380px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  .desc { font-size: 12px; color: #8b93a5; margin-bottom: 10px; line-height: 1.6; }
+  button { width: 100%; padding: 10px; background: #232734; color: #dde2ea; border: 1px solid #333949;
+           border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-size: 13px; text-align: left; }
+  button:hover { border-color: #4a5470; background: #2e3444; }
+  button b { color: #9db8ff; }
+  #now { font-size: 13px; color: #ffb35c; margin-top: 6px; min-height: 18px; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<div id="stage"></div>
+<div id="panel">
+  <h1>模块 3 · 镜头语言</h1>
+  <div class="desc">四种基础镜头手法。成片里由剧本自动调用，这里手动逐一验证。<br>（人物会同时播放动作，方便判断构图）</div>
+  <button data-m="cut"><b>硬切</b> — 正面远景瞬间切到特写（剧情转折常用）</button>
+  <button data-m="smooth"><b>平滑过渡</b> — 0.8 秒推镜到特写（对话常用）</button>
+  <button data-m="orbit"><b>环绕</b> — 8 秒绕角色一周（展示/高潮常用）</button>
+  <button data-m="push"><b>推拉</b> — 远景缓慢推近（情绪铺垫常用）</button>
+  <button data-m="auto"><b>▶ 自动连续演示</b> — 按成片节奏连播一遍</button>
+  <div id="now"></div>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import { createStage } from './common.js';
+
+const $ = (s) => document.querySelector(s);
+const stage = await createStage('#stage');
+await stage.loadModel('角色1.vrm');
+await stage.playAnim('idle_loop', true);
+
+const CAMS = {
+  wide:  { pos: [0, 1.5, 4.2], tgt: [0, 0.95, 0] },
+  close: { pos: [0.35, 1.5, 1.2], tgt: [0, 1.25, 0] },
+  orbitR: 3.0, orbitH: 1.4,
+};
+let camAnim = null;   // {from:{p,t}, to:{p,t}, t0, dur}
+let orbiting = false;
+
+const ease = (k) => k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k+2, 2)/2;
+
+function applyPose(pose) {
+  stage.camera.position.set(...pose.pos);
+  stage.controls.target.set(...pose.tgt);
+  stage.controls.update();
+}
+
+function startMove(toPose, dur, label) {
+  camAnim = {
+    fromP: stage.camera.position.clone(),
+    fromT: stage.controls.target.clone(),
+    toP: new THREE.Vector3(...toPose.pos),
+    toT: new THREE.Vector3(...toPose.tgt),
+    t0: performance.now(), dur,
+  };
+  $('#now').textContent = '当前：' + label;
+}
+
+document.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  const m = b.dataset.m;
+  orbiting = false;
+  if (m === 'cut') {
+    camAnim = null;
+    applyPose(CAMS.close);
+    $('#now').textContent = '当前：硬切 → 特写';
+  } else if (m === 'smooth') {
+    startMove(CAMS.close, 800, '平滑过渡 → 特写');
+  } else if (m === 'orbit') {
+    orbiting = true;
+    $('#now').textContent = '当前：环绕（8 秒一周）';
+  } else if (m === 'push') {
+    startMove({ pos: [0, 2.6, 7.5], tgt: [0, 0.9, 0] }, 2500, '推镜（远景→中景）');
+  } else if (m === 'auto') {
+    runAuto();
+  }
+}));
+
+async function runAuto() {
+  applyPose(CAMS.wide);
+  $('#now').textContent = '自动演示：全景';
+  await new Promise(r => setTimeout(r, 1500));
+  startMove(CAMS.close, 800, '自动演示：平滑过渡到特写');
+  await new Promise(r => setTimeout(r, 1800));
+  orbiting = true; $('#now').textContent = '自动演示：环绕';
+  await new Promise(r => setTimeout(r, 5000));
+  orbiting = false;
+  startMove({ pos: [0, 2.6, 7.5], tgt: [0, 0.9, 0] }, 1200, '自动演示：拉远收尾');
+  await new Promise(r => setTimeout(r, 1500));
+  $('#now').textContent = '自动演示结束';
+}
+
+const clock = new THREE.Clock();
+let orbitDeg = 0;
+stage.renderer.setAnimationLoop(() => {
+  const d = clock.getDelta();
+  if (stage.state.mixer) stage.state.mixer.update(d);
+  if (stage.state.vrm) stage.state.vrm.update(d);
+  if (camAnim) {
+    const k = Math.min(1, (performance.now() - camAnim.t0) / camAnim.dur);
+    const e = ease(k);
+    stage.camera.position.lerpVectors(camAnim.fromP, camAnim.toP, e);
+    stage.controls.target.lerpVectors(camAnim.fromT, camAnim.toT, e);
+    stage.controls.update();
+    if (k >= 1) { camAnim = null; }
+  } else if (orbiting) {
+    orbitDeg += d * 45;   // 8秒一圈
+    const rad = orbitDeg * Math.PI / 180;
+    const pos = [0.0 + Math.sin(rad) * CAMS.orbitR, CAMS.orbitH, Math.cos(rad) * CAMS.orbitR];
+    applyPose({ pos, tgt: [0, 0.95, 0] });
+  } else {
+    stage.controls.update();
+  }
+  stage.renderer.render(stage.scene, stage.camera);
+});
+</script>
+</body>
+</html>

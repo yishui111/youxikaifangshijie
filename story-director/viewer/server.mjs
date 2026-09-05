@@ -39,8 +39,12 @@ const server = http.createServer((req, res) => {
     const actions = fs.existsSync(actionsDir)
       ? fs.readdirSync(actionsDir).filter(f => f.toLowerCase().endsWith('.vrma')).map(f => f.replace(/\.vrma$/i, ''))
       : [];
+    const voiceDir = path.join(ROOT, 'voice');
+    const voice = fs.existsSync(voiceDir)
+      ? fs.readdirSync(voiceDir).filter(f => f.toLowerCase().endsWith('.wav') || f.toLowerCase().endsWith('.ogg'))
+      : [];
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ models, actions }));
+    res.end(JSON.stringify({ models, actions, voice }));
     return;
   }
 

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>故事导演 · 模型动作预览台</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script type="importmap">
+{
+  "imports": {
+    "three": "/node_modules/three/build/three.module.js",
+    "three/addons/": "/node_modules/three/examples/jsm/",
+    "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+    "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+  }
+}
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #panel { width: 340px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; overflow-y: auto; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  h2 { font-size: 13px; color: #8b93a5; margin: 14px 0 6px; border-top: 1px solid #2a2e3a; padding-top: 10px; }
+  select, button { font-family: inherit; }
+  select { width: 100%; padding: 6px; background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 6px; }
+  button { cursor: pointer; background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 6px; padding: 6px 10px; }
+  button:hover { background: #2e3444; border-color: #4a5470; }
+  button.act { display: inline-block; margin: 3px 3px 0 0; font-size: 12px; }
+  button.on { background: #3d5afe; border-color: #3d5afe; color: white; }
+  #demoBtn { width: 100%; padding: 10px; background: #3d5afe; border: none; color: white; font-size: 14px; border-radius: 8px; margin-top: 8px; }
+  #demoBtn:hover { background: #516bff; }
+  #status { font-size: 12px; color: #8b93a5; margin-top: 8px; min-height: 16px; }
+  .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; font-size: 13px; }
+  input[type=range] { flex: 1; }
+  #subtitle { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); max-width: 80%;
+    background: rgba(0,0,0,.62); color: #fff; font-size: 20px; padding: 10px 22px; border-radius: 10px;
+    text-shadow: 0 1px 2px black; white-space: nowrap; display: none; }
+  #camtip { position: absolute; right: 12px; top: 12px; font-size: 12px; color: #ffffff88; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<div id="stage">
+  <div id="subtitle"></div>
+  <div id="camtip">鼠标左键旋转 · 滚轮缩放 · 右键平移</div>
+</div>
+<div id="panel">
+  <h1>故事导演 · 预览台</h1>
+  <h2>模型（.vrm 自动加载）</h2>
+  <select id="modelSel"></select>
+  <div class="row">
+    <label><input type="checkbox" id="loopChk" checked> 循环播放</label>
+    <label style="margin-left:auto">速度 <input type="range" id="speed" min="0.25" max="2" step="0.05" value="1" style="width:90px"></label>
+  </div>
+  <h2>我的想法 · 一键演示序列</h2>
+  <button id="demoBtn">▶ 播放想法演示（打招呼→待机→走路→舞蹈→鞠躬）</button>
+  <h2>动作库（点击即播，融合由 three-vrm 实时完成）</h2>
+  <div>
+    <button class="act" data-anim="idle_loop">待机循环</button>
+    <button class="act" data-anim="avatar_walk">走路</button>
+    <button class="act" data-anim="avatar_run">跑步</button>
+    <button class="act" data-anim="avatar_talk">说话</button>
+  </div>
+  <div id="actionList"></div>
+  <h2>镜头</h2>
+  <div>
+    <button class="cam" data-cam="front">正面</button>
+    <button class="cam" data-cam="side">侧面</button>
+    <button class="cam" data-cam="close">特写</button>
+    <button class="cam" data-cam="far">远景</button>
+  </div>
+  <div id="status">初始化中…</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const $ = (s) => document.querySelector(s);
+const status = (t) => { $('#status').textContent = t; };
+
+// ---------- 场景 ----------
+const stage = $('#stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87a8d0);
+scene.fog = new THREE.Fog(0x87a8d0, 18, 42);
+
+const camera = new THREE.PerspectiveCamera(35, stage.clientWidth / stage.clientHeight, 0.1, 100);
+camera.position.set(0, 1.45, 3.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.05, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(2, 4, 3);
+sun.castShadow = true;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x8899ff, 0.35));
+
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(9, 48),
+  new THREE.MeshStandardMaterial({ color: 0x5d7a4a, roughness: 1 })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+window.addEventListener('resize', () => {
+  renderer.setSize(stage.clientWidth, stage.clientHeight);
+  camera.aspect = stage.clientWidth / stage.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ---------- 加载器 ----------
+const loader = new GLTFLoader();
+loader.register((p) => new VRMLoaderPlugin(p));
+loader.register((p) => new VRMAnimationLoaderPlugin(p));
+const loadGLTF = (url) => new Promise((res, rej) =>
+  loader.load(url, res, (ev) => {
+    if (ev.total) status(`加载中 ${Math.round(ev.loaded / ev.total * 100)}%`);
+  }, rej));
+
+let vrm = null, mixer = null, currentAction = null;
+
+async function loadModel(file) {
+  status('加载模型 ' + file + ' …');
+  if (vrm) { scene.remove(vrm.scene); VRMUtils.deepDispose(vrm.scene); vrm = null; }
+  const gltf = await loadGLTF('/models/' + encodeURIComponent(file));
+  vrm = gltf.userData.vrm;
+  if (VRMUtils.combineSkeletons) { VRMUtils.combineSkeletons(gltf.scene); }
+  else { VRMUtils.removeUnnecessaryJoints(gltf.scene); }
+  gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  scene.add(gltf.scene);
+  mixer = new THREE.AnimationMixer(vrm.scene);
+  window.__vrm = vrm;
+  window.__mixer = mixer;
+  currentAction = null;
+  status('模型就绪: ' + file);
+}
+
+async function playAnim(name, loop = true) {
+  if (!vrm) { status('请先加载模型'); return; }
+  status('加载动作 ' + name + ' …');
+  const agltf = await loadGLTF('/actions/' + encodeURIComponent(name) + '.vrma');
+  const anim = agltf.userData.vrmAnimations[0];
+  if (!anim) { status('该文件没有动画数据'); return; }
+  const clip = createVRMAnimationClip(anim, vrm);
+  if (currentAction) currentAction.stop();
+  currentAction = mixer.clipAction(clip);
+  currentAction.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+  currentAction.clampWhenFinished = true;
+  currentAction.reset().play();
+  status('播放: ' + name + (loop ? '（循环）' : ''));
+}
+
+// ---------- 演示序列（我的想法直观展示） ----------
+const DEMO = [
+  { anim: 'avatar_hello', sub: '开场：角色向镜头挥手 —— 模型+动作自动融合' },
+  { anim: 'idle_loop', sub: '待机：呼吸与重心起伏，动作循环' },
+  { anim: 'avatar_walk', sub: '走路：人形重定向后的步伐' },
+  { anim: 'avatar_dance1', sub: '舞蹈：大幅动作的融合质量（镜头环绕展示）' },
+  { anim: 'avatar_bow', sub: '鞠躬：礼仪动作' },
+  { anim: 'avatar_clap', sub: '鼓掌：节奏型动作' },
+];
+let demoRunning = false;
+
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+async function runDemo() {
+  if (demoRunning || !vrm) return;
+  demoRunning = true;
+  $('#demoBtn').textContent = '演示播放中…（点此停止）';
+  camera.position.set(0, 1.45, 3.2);
+  controls.target.set(0, 1.05, 0);
+  for (const step of DEMO) {
+    if (!demoRunning) break;
+    const sub = $('#subtitle');
+    sub.textContent = step.sub;
+    sub.style.display = 'block';
+    await playAnim(step.anim, step.anim === 'idle_loop');
+    // 舞蹈时镜头环绕，其余缓慢推进
+    const dur = step.anim === 'avatar_dance1' ? 9000 : 3800;
+    const t0 = performance.now();
+    const camStart = camera.position.clone();
+    while (performance.now() - t0 < dur) {
+      const k = (performance.now() - t0) / dur;
+      if (step.anim === 'avatar_dance1') {
+        const a = k * Math.PI * 2;
+        camera.position.set(Math.sin(a) * 3.2, 1.5, Math.cos(a) * 3.2);
+        controls.target.set(0, 1.0, 0);
+      } else {
+        camera.position.lerpVectors(camStart, new THREE.Vector3(0, 1.45, 3.2), k * 0.3);
+      }
+      await sleep(30);
+    }
+  }
+  $('#subtitle').style.display = 'none';
+  $('#demoBtn').textContent = '▶ 播放想法演示（打招呼→待机→走路→舞蹈→鞠躬）';
+  demoRunning = false;
+}
+$('#demoBtn').addEventListener('click', () => { demoRunning = !demoRunning; if (demoRunning) runDemo(); });
+
+// ---------- UI 初始化 ----------
+const list = await (await fetch('/api/list')).json();
+for (const m of list.models) {
+  const o = document.createElement('option');
+  o.value = m; o.textContent = m;
+  $('#modelSel').appendChild(o);
+}
+$('#modelSel').addEventListener('change', () => loadModel($('#modelSel').value));
+
+const groupDefs = [
+  ['问候 / 表达', ['avatar_hello', 'avatar_bow', 'avatar_clap', 'avatar_salute', 'avatar_peace', 'avatar_fist_pump', 'avatar_point_me', 'avatar_point_you', 'avatar_nyanya', 'avatar_jumpforjoy']],
+  ['情绪表演', ['avatar_express_laugh', 'avatar_express_surprise', 'avatar_express_sad', 'avatar_express_anger', 'avatar_express_afraid', 'avatar_express_wink', 'avatar_express_embarrased', 'avatar_express_shrug']],
+  ['舞蹈 / 大幅动作', ['avatar_dance1', 'avatar_dance2', 'avatar_dance3', 'avatar_dance4', 'avatar_dance5', 'avatar_musclebeach', 'avatar_yoga_float']],
+  ['坐 / 卧 / 生活', ['avatar_sit_ground', 'avatar_sit', 'avatar_sleep', 'avatar_stretch', 'avatar_drink', 'avatar_smoke_idle']],
+];
+const listDiv = $('#actionList');
+for (const [label, names] of groupDefs) {
+  const h = document.createElement('div');
+  h.style.cssText = 'font-size:11px;color:#6b7386;margin:8px 0 2px;' + 'border-bottom:1px dashed #2a2e3a;padding-bottom:2px;';
+  h.textContent = label;
+  listDiv.appendChild(h);
+  for (const n of names) {
+    if (!list.actions.includes(n)) continue;
+    const b = document.createElement('button');
+    b.className = 'act';
+    b.textContent = n.replace('avatar_', '');
+    b.addEventListener('click', () => {
+      document.querySelectorAll('button.act').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      playAnim(n, $('#loopChk').checked);
+    });
+    listDiv.appendChild(b);
+  }
+}
+
+// 顶部固定动作按钮（待机/走路/跑步/说话）
+document.querySelectorAll('button.act[data-anim]').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('button.act').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    playAnim(b.dataset.anim, true);
+  });
+});
+
+document.querySelectorAll('.cam').forEach(b => b.addEventListener('click', () => {
+  const presets = {
+    front: [0, 1.45, 3.2], side: [3.0, 1.4, 1.2], close: [0.35, 1.5, 1.15], far: [0, 3.2, 8],
+  };
+  const p = presets[b.dataset.cam];
+  camera.position.set(...p);
+  controls.target.set(0, 1.05, 0);
+}));
+
+$('#speed').addEventListener('input', (e) => { if (mixer) mixer.timeScale = +e.target.value; });
+
+// ---------- 主循环 ----------
+// 调试导出口（截图自动化用）
+window.__view = null;   // main 段会赋值
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  if (window.__frozen) return;   // 冻结开关：截图/调试用
+  const d = clock.getDelta();
+  if (mixer) mixer.update(d);
+  if (vrm) vrm.update(d);
+  controls.update();
+  renderer.render(scene, camera);
+});
+
+// 暴露给自动化工具
+window.__view = { renderer, scene, camera, controls };
+
+// 启动
+if (list.models.length) {
+  await loadModel(list.models[0]);
+  await playAnim('idle_loop', true);
+} else {
+  status('models/ 目录里没有 .vrm 模型');
+}
+</script>
+</body>
+</html>

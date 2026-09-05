@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>模块总览 · 故事导演</title>
+<style>
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea;
+         max-width: 860px; margin: 40px auto; padding: 0 20px; }
+  h1 { color: #9db8ff; font-size: 22px; }
+  h1 span { color: #6b7386; font-size: 13px; font-weight: normal; }
+  .mod { display: block; background: #1b1e27; border: 1px solid #2a2e3a; border-radius: 10px;
+         padding: 16px 20px; margin: 14px 0; text-decoration: none; color: #dde2ea; transition: .15s; }
+  .mod:hover { border-color: #3d5afe; background: #1f2331; }
+  .mod b { color: #9db8ff; font-size: 16px; }
+  .mod .tag { display: inline-block; font-size: 11px; background: #24305a; color: #9db8ff;
+              border-radius: 4px; padding: 1px 8px; margin-left: 8px; }
+  .mod p { color: #8b93a5; font-size: 13px; margin: 6px 0 0; }
+  .ok { color: #6ee7a0; }
+</style>
+</head>
+<script>
+window.__err = [];
+window.addEventListener('error', e => window.__err.push(e.message + ' @ ' + (e.filename||'') + ':' + e.lineno));
+window.addEventListener('unhandledrejection', e => window.__err.push('promise: ' + ((e.reason && e.reason.message) || String(e.reason))));
+</script>
+<body>
+<h1>故事导演 · 模块拆分 <span>每个模块独立测试，互不影响</span></h1>
+
+<a class="mod" href="/viewer/m1_fusion.html">
+  <b>模块 1 · 动作融合</b><span class="tag">已验证</span>
+  <p>模型 + .vrma 动作的自动融合预览（three-vrm 官方重定向）。也就是之前的控制页面。</p>
+</a>
+
+<a class="mod" href="/viewer/m2_timeline.html">
+  <b>模块 2 · 剧本时间轴</b><span class="tag">测试页</span>
+  <p>剧本 JSON → 按秒触发动作。验证：时间轴是否精准、动作衔接是否自然。</p>
+</a>
+
+<a class="mod" href="/viewer/m3_camera.html">
+  <b>模块 3 · 镜头语言</b><span class="tag">测试页</span>
+  <p>切镜、平滑过渡、环绕运镜、特写/远景。验证：镜头语言的表达力。</p>
+</a>
+
+<a class="mod" href="/viewer/m4_voice.html">
+  <b>模块 4 · 语音 + 字幕 + 口型</b><span class="tag">测试页</span>
+  <p>TTS 台词播放、字幕样式、口型同步。验证：声画同步效果。</p>
+</a>
+
+<a class="mod" href="/viewer/m5_record.html">
+  <b>模块 5 · 渲染出片</b><span class="tag">测试页</span>
+  <p>浏览器直接录制画面+声音输出视频文件。验证：出片质量和便利性。</p>
+</a>
+
+</body>
+</html>
