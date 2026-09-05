@@ -1,0 +1,28 @@
+; Engine configuration file.
+; Godot 4 项目配置 —— 故事导演 StoryDirector
+
+config_version=5
+
+[application]
+
+config/name="故事导演 StoryDirector"
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7")
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/Godot-MToon-Shader/plugin.cfg", "res://addons/vrm/plugin.cfg")
+
+[movie_writer]
+
+movie_writer/fps=30
+movie_writer/mjpeg_quality=0.85
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=2

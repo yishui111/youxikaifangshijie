@@ -1,0 +1,3 @@
+avatar_hello
+idle_loop
+avatar_walk

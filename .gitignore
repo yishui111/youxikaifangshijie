@@ -1,0 +1,23 @@
+# 引擎与工具安装包
+/blender/
+/godot/godot.zip
+/godot/Godot_*.exe
+godot.zip
+Godot_*.exe
+*.pdb
+# 第三方参考项目(独立克隆)
+/参考项目/
+# 渲染输出
+/story-director/render/
+# 依赖与构建
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+# 系统文件
+Thumbs.db
+.DS_Store
+.godot/
+*.vrma
+/story-director/actions/

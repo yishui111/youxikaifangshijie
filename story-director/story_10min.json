@@ -1,0 +1,1409 @@
+{
+ "title": "帕米尔的黎明 · Dawn of Palmir",
+ "loop": false,
+ "actors": {
+  "feng": {
+   "display": "风",
+   "model": "models/角色1.vrm",
+   "start": [
+    -7,
+    0,
+    -6
+   ]
+  },
+  "xue": {
+   "display": "雪",
+   "model": "models/角色2.vrm",
+   "start": [
+    7,
+    0,
+    -6
+   ]
+  },
+  "ye": {
+   "display": "夜",
+   "model": "models/角色3.vrm",
+   "start": [
+    0,
+    0,
+    -7
+   ]
+  }
+ },
+ "cameras": {
+  "wide": {
+   "pos": [
+    0,
+    4,
+    2
+   ],
+   "look": [
+    0,
+    1.2,
+    -5.5
+   ]
+  },
+  "three_shot": {
+   "pos": [
+    0,
+    1.8,
+    1
+   ],
+   "look": [
+    0,
+    1.2,
+    -5.5
+   ]
+  },
+  "feng_close": {
+   "pos": [
+    -1.4,
+    1.4,
+    -2.6
+   ],
+   "look": [
+    -2.2,
+    1.25,
+    -5.5
+   ]
+  },
+  "xue_close": {
+   "pos": [
+    1.4,
+    1.4,
+    -2.6
+   ],
+   "look": [
+    2.2,
+    1.25,
+    -5.5
+   ]
+  },
+  "ye_close": {
+   "pos": [
+    0.6,
+    1.4,
+    -3.4
+   ],
+   "look": [
+    0.2,
+    1.25,
+    -6.2
+   ]
+  },
+  "far": {
+   "pos": [
+    0,
+    10,
+    12
+   ],
+   "look": [
+    0,
+    0,
+    -6
+   ]
+  }
+ },
+ "timeline": [
+  {
+   "type": "environment",
+   "preset": "day",
+   "t": 0.0
+  },
+  {
+   "type": "bgm",
+   "volume_db": -16,
+   "t": 0.0
+  },
+  {
+   "type": "orbit",
+   "look": [
+    0,
+    1.1,
+    -3
+   ],
+   "radius": 8,
+   "height": 2.0,
+   "from_deg": -30,
+   "to_deg": 90,
+   "duration": 18,
+   "t": 0.0
+  },
+  {
+   "type": "subtitle",
+   "text": "帕米尔大陆，风与草海的低语之地。",
+   "t": 1.0
+  },
+  {
+   "type": "subtitle",
+   "text": "商道横穿草海，连接着王国与北方的港口。千百年来，旅人们在这里相遇，又在这里道别。",
+   "t": 6.14
+  },
+  {
+   "type": "subtitle",
+   "text": "这一天，十字路口，三位素未谋面的旅人，相遇了。",
+   "t": 16.64
+  },
+  {
+   "type": "camera",
+   "name": "wide",
+   "transition": 1.0,
+   "t": 24.26
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -2.6,
+    0,
+    -5
+   ],
+   "duration": 4.0,
+   "t": 24.26
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    2.6,
+    0,
+    -5
+   ],
+   "duration": 4.0,
+   "t": 24.26
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    0,
+    0,
+    -3.8
+   ],
+   "duration": 4.0,
+   "t": 24.26
+  },
+  {
+   "type": "camera",
+   "name": "feng_close",
+   "transition": 0.7,
+   "t": 28.86
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_hello",
+   "t": 28.86
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L000.wav",
+   "subtitle": "你们好呀！我叫阿风，第一次走这条商道，差点在草海里迷路。",
+   "duration": 6.909999999999999,
+   "t": 28.86
+  },
+  {
+   "type": "camera",
+   "name": "xue_close",
+   "transition": 0.7,
+   "t": 35.57
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_bow",
+   "t": 35.57
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L001.wav",
+   "subtitle": "欢迎，阿风。我叫雪，受商会之托，要前往北方的望风塔。",
+   "duration": 8.66,
+   "t": 35.57
+  },
+  {
+   "type": "camera",
+   "name": "ye_close",
+   "transition": 0.7,
+   "t": 44.03
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_salute",
+   "t": 44.03
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L002.wav",
+   "subtitle": "护卫，夜。前面的路不太平，人多有个照应。",
+   "duration": 8.13,
+   "t": 44.03
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_point_you",
+   "t": 51.96
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L003.wav",
+   "subtitle": "诶？夜先生看起来好严肃，是不是不爱说话呀？",
+   "duration": 5.64,
+   "t": 51.96
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_no_head",
+   "t": 57.4
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L004.wav",
+   "subtitle": "……话不多，但算数。",
+   "duration": 3.97,
+   "t": 57.4
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 61.17
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_fist_pump",
+   "t": 61.17
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L005.wav",
+   "subtitle": "那就说定了，一起走吧！目的地，望风塔！",
+   "duration": 5.25,
+   "t": 61.17
+  },
+  {
+   "type": "subtitle",
+   "text": "就这样，三个人的旅途开始了。",
+   "t": 66.22
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    5,
+    10
+   ],
+   "look": [
+    0,
+    1,
+    -4
+   ],
+   "transition": 1.2,
+   "t": 73.08
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -3,
+    0,
+    -5
+   ],
+   "duration": 6.0,
+   "t": 73.08
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    0,
+    0,
+    -6
+   ],
+   "duration": 6.0,
+   "t": 73.08
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    3,
+    0,
+    -5
+   ],
+   "duration": 6.0,
+   "t": 73.08
+  },
+  {
+   "type": "subtitle",
+   "text": "草海的风带着初夏的味道。路还很长，说说笑笑，倒也不闷。",
+   "t": 75.08
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.6,
+   "t": 86.26
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L006.wav",
+   "subtitle": "说起来，阿风为什么一个人旅行？家里不担心吗？",
+   "duration": 6.93,
+   "t": 86.26
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_point_me",
+   "t": 92.99
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L007.wav",
+   "subtitle": "因为我想写一本《帕米尔见闻录》！把大陆每个角落都走一遍！",
+   "duration": 6.13,
+   "t": 92.99
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L008.wav",
+   "subtitle": "……志向不小。前面那段路，前几日刚有商队遇袭。",
+   "duration": 8.46,
+   "t": 98.92
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_express_worry",
+   "t": 107.18
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L009.wav",
+   "subtitle": "所以，还是跟夜先生搭伴比较稳妥。",
+   "duration": 5.06,
+   "t": 107.18
+  },
+  {
+   "type": "camera",
+   "pos": [
+    6,
+    2,
+    2
+   ],
+   "look": [
+    0,
+    1.2,
+    -5
+   ],
+   "transition": 1.0,
+   "t": 113.04
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -2,
+    0,
+    -8
+   ],
+   "duration": 6.0,
+   "t": 113.04
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    0.5,
+    0,
+    -9
+   ],
+   "duration": 6.0,
+   "t": 113.04
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    3,
+    0,
+    -8
+   ],
+   "duration": 6.0,
+   "t": 113.04
+  },
+  {
+   "type": "subtitle",
+   "text": "走过缓坡，草海深处传来风铃声——那是挂在旧路标上的护身符。",
+   "t": 119.44
+  },
+  {
+   "type": "camera",
+   "name": "feng_close",
+   "transition": 0.8,
+   "t": 128.4
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_express_surprise",
+   "t": 128.4
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L010.wav",
+   "subtitle": "你们听！风铃的声音！老话说是旅人的守护灵在打招呼！",
+   "duration": 6.55,
+   "t": 128.4
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 134.75
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L011.wav",
+   "subtitle": "但愿这位守护灵，也能保佑我们的货物。",
+   "duration": 5.25,
+   "t": 134.75
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L012.wav",
+   "subtitle": "守护灵不管强盗。管强盗的是我。",
+   "duration": 6.3999999999999995,
+   "t": 139.8
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_express_laugh",
+   "t": 146.0
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L013.wav",
+   "subtitle": "噗——夜先生偶尔说话，还挺好笑的。",
+   "duration": 4.33,
+   "t": 146.0
+  },
+  {
+   "type": "camera",
+   "pos": [
+    -6,
+    2,
+    2
+   ],
+   "look": [
+    0,
+    1.2,
+    -8
+   ],
+   "transition": 1.0,
+   "t": 151.13
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -1,
+    0,
+    -11
+   ],
+   "duration": 6.0,
+   "t": 151.13
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    1,
+    0,
+    -12
+   ],
+   "duration": 6.0,
+   "t": 151.13
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    3,
+    0,
+    -11
+   ],
+   "duration": 6.0,
+   "t": 151.13
+  },
+  {
+   "type": "subtitle",
+   "text": "草海一望无际，走过的路很快就被风抹平了痕迹。",
+   "t": 157.53
+  },
+  {
+   "type": "camera",
+   "name": "wide",
+   "transition": 0.9,
+   "t": 165.01
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L014.wav",
+   "subtitle": "翻过前面那道坡，就是旧王国的地界。",
+   "duration": 6.26,
+   "t": 165.01
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L015.wav",
+   "subtitle": "旧王国……见闻录里写过！一千年前的商路，就是从那里开始的！",
+   "duration": 6.92,
+   "t": 171.07
+  },
+  {
+   "type": "camera",
+   "name": "far",
+   "transition": 1.0,
+   "t": 177.79
+  },
+  {
+   "type": "subtitle",
+   "text": "远处的地平线上，断裂的石柱静静立在夕阳里。那便是旧王国的废墟。",
+   "t": 177.79
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_point_you",
+   "t": 187.53
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L016.wav",
+   "subtitle": "看，废墟到了。今晚就在那里过夜。",
+   "duration": 5.64,
+   "t": 187.53
+  },
+  {
+   "type": "environment",
+   "preset": "sunset",
+   "t": 194.47
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    2.5,
+    2
+   ],
+   "look": [
+    0,
+    1.2,
+    -6
+   ],
+   "transition": 1.4,
+   "t": 194.47
+  },
+  {
+   "type": "subtitle",
+   "text": "抵达废墟时，正值黄昏。金色的光染遍了每一块残石。",
+   "t": 194.47
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L017.wav",
+   "subtitle": "就在这里扎营。石墙背风，天黑前把火生起来。",
+   "duration": 8.48,
+   "t": 202.73
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -1.5,
+    0,
+    -6
+   ],
+   "duration": 2.5,
+   "t": 211.01
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    1.5,
+    0,
+    -6
+   ],
+   "duration": 2.5,
+   "t": 211.01
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    0,
+    0,
+    -7
+   ],
+   "duration": 2.5,
+   "t": 211.01
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L018.wav",
+   "subtitle": "趁着天还没黑……要不要跳支舞？小时候跟商队的艺人学过。",
+   "duration": 8.05,
+   "t": 213.71
+  },
+  {
+   "type": "camera",
+   "name": "xue_close",
+   "transition": 0.8,
+   "t": 221.56
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_dance1",
+   "t": 221.56
+  },
+  {
+   "type": "orbit",
+   "look": [
+    1.5,
+    1.0,
+    -6
+   ],
+   "radius": 3.5,
+   "height": 1.5,
+   "from_deg": 0,
+   "to_deg": 360,
+   "duration": 14,
+   "t": 221.56
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_clap",
+   "loop": true,
+   "t": 236.06
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_clap",
+   "loop": true,
+   "t": 236.06
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 236.06
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L019.wav",
+   "subtitle": "雪你也太厉害了吧！转圈的时候裙摆都发光了！",
+   "duration": 5.26,
+   "t": 236.06
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_express_laugh",
+   "t": 241.12
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L020.wav",
+   "subtitle": "哈哈，都是很久之前的事啦，手法都生疏了。",
+   "duration": 5.97,
+   "t": 241.12
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L021.wav",
+   "subtitle": "（鼓掌）很少见到这么轻快的舞步。",
+   "duration": 5.58,
+   "t": 246.89
+  },
+  {
+   "type": "camera",
+   "name": "feng_close",
+   "transition": 0.8,
+   "t": 252.27
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_musclebeach",
+   "t": 252.27
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L022.wav",
+   "subtitle": "看好了，接下来是阿风的绝活！肌肉才是浪漫！",
+   "duration": 5.54,
+   "t": 252.27
+  },
+  {
+   "type": "orbit",
+   "look": [
+    -1.5,
+    1.0,
+    -6
+   ],
+   "radius": 3.0,
+   "height": 1.4,
+   "from_deg": 180,
+   "to_deg": 300,
+   "duration": 8,
+   "t": 257.61
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 266.11
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_express_wink",
+   "t": 266.11
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L023.wav",
+   "subtitle": "噗——阿风，你这算哪门子舞蹈呀。",
+   "duration": 4.93,
+   "t": 266.11
+  },
+  {
+   "type": "camera",
+   "name": "ye_close",
+   "transition": 0.8,
+   "t": 270.84
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_dance3",
+   "t": 270.84
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L024.wav",
+   "subtitle": "……那么，看好了。护卫的舞，只有一套。",
+   "duration": 7.04,
+   "t": 270.84
+  },
+  {
+   "type": "orbit",
+   "look": [
+    0,
+    1.0,
+    -6.2
+   ],
+   "radius": 3.2,
+   "height": 1.4,
+   "from_deg": 30,
+   "to_deg": 150,
+   "duration": 10,
+   "t": 277.68
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_jumpforjoy",
+   "t": 288.18
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L025.wav",
+   "subtitle": "哇——夜先生深藏不露啊！！",
+   "duration": 3.23,
+   "t": 288.18
+  },
+  {
+   "type": "subtitle",
+   "text": "笑声惊起了栖息在石柱上的飞鸟。暮色四合，篝火升起来了。",
+   "t": 291.21
+  },
+  {
+   "type": "environment",
+   "preset": "sunset",
+   "sun_deg": [
+    -6,
+    -80,
+    0
+   ],
+   "sun_energy": 0.7,
+   "fog_density": 0.012,
+   "t": 300.39
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    1.8,
+    4.5
+   ],
+   "look": [
+    0,
+    1.1,
+    -6
+   ],
+   "transition": 1.2,
+   "t": 300.39
+  },
+  {
+   "type": "subtitle",
+   "text": "三个人围坐在篝火旁，分享着干粮和各自的故事。",
+   "t": 300.39
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    -1.2,
+    0,
+    -5.2
+   ],
+   "duration": 2.0,
+   "t": 306.37
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    1.2,
+    0,
+    -5.2
+   ],
+   "duration": 2.0,
+   "t": 306.37
+  },
+  {
+   "type": "camera",
+   "name": "ye_close",
+   "transition": 0.8,
+   "t": 308.77
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_cross_arms",
+   "t": 308.77
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L026.wav",
+   "subtitle": "雪小姐是商会的人，为什么会亲自跑这么远的路？",
+   "duration": 7.609999999999999,
+   "t": 308.77
+  },
+  {
+   "type": "camera",
+   "name": "xue_close",
+   "transition": 0.8,
+   "t": 316.18
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L027.wav",
+   "subtitle": "这批货里，有一封要紧的信。要亲手交给望风塔的塔主。",
+   "duration": 7.4799999999999995,
+   "t": 316.18
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L028.wav",
+   "subtitle": "信里写了什么，我也不知道。只知道，很多人都在等着它。",
+   "duration": 7.84,
+   "t": 323.46
+  },
+  {
+   "type": "camera",
+   "name": "feng_close",
+   "transition": 0.8,
+   "t": 331.1
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_nyanya",
+   "t": 331.1
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L029.wav",
+   "subtitle": "神秘！我最喜欢神秘的东西了！写书的时候一定用它当开头！",
+   "duration": 6.9799999999999995,
+   "t": 331.1
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 337.88
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_no_head",
+   "t": 337.88
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L030.wav",
+   "subtitle": "……你的『最喜欢』，多半会让我们绕远路。",
+   "duration": 5.97,
+   "t": 337.88
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_express_embarrased",
+   "t": 343.65
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L031.wav",
+   "subtitle": "哎呀，上次绕远路那只是意外啦！",
+   "duration": 3.92,
+   "t": 343.65
+  },
+  {
+   "type": "camera",
+   "name": "xue_close",
+   "transition": 0.8,
+   "t": 347.37
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L032.wav",
+   "subtitle": "我的家乡在海边。出发前，母亲替我缝了这件衣服的领口。",
+   "duration": 7.77,
+   "t": 347.37
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_express_afraid",
+   "t": 354.94
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L033.wav",
+   "subtitle": "她说，路上的风大。其实我知道，她是舍不得。",
+   "duration": 6.949999999999999,
+   "t": 354.94
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.9,
+   "t": 362.69
+  },
+  {
+   "type": "subtitle",
+   "text": "火光映在三张年轻的脸上。夜色，一点点落了下来。",
+   "t": 362.69
+  },
+  {
+   "type": "environment",
+   "preset": "night",
+   "t": 371.31
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    2.2,
+    5
+   ],
+   "look": [
+    0,
+    1.1,
+    -5.5
+   ],
+   "transition": 1.5,
+   "t": 371.31
+  },
+  {
+   "type": "subtitle",
+   "text": "夜风微凉，星空低垂。今夜的第一班岗，交给夜。",
+   "t": 371.31
+  },
+  {
+   "type": "camera",
+   "name": "ye_close",
+   "transition": 0.9,
+   "t": 379.79
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L034.wav",
+   "subtitle": "都睡吧。前半夜我来守。",
+   "duration": 5.26,
+   "t": 379.79
+  },
+  {
+   "type": "camera",
+   "name": "xue_close",
+   "transition": 1.0,
+   "t": 386.05
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L035.wav",
+   "subtitle": "夜先生……谢了。对了，你为什么做护卫这一行？",
+   "duration": 6.819999999999999,
+   "t": 386.05
+  },
+  {
+   "type": "camera",
+   "name": "ye_close",
+   "transition": 1.0,
+   "t": 393.47
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_away",
+   "t": 393.47
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L036.wav",
+   "subtitle": "走过的地方多了，就会发现——有人等着你回去，是一件奢侈的事。",
+   "duration": 9.85,
+   "t": 393.47
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L037.wav",
+   "subtitle": "护卫这行，护的其实不是货。是『归途』。",
+   "duration": 7.409999999999999,
+   "t": 403.72
+  },
+  {
+   "type": "camera",
+   "name": "wide",
+   "transition": 1.2,
+   "t": 412.13
+  },
+  {
+   "type": "subtitle",
+   "text": "篝火渐渐矮了下去。远处的石柱在星空下，像沉默的巨人。",
+   "t": 412.13
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 1.0,
+   "t": 421.67
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_sit_ground",
+   "loop": true,
+   "t": 421.67
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L038.wav",
+   "subtitle": "等这趟货送完……我想回家看看。",
+   "duration": 4.84,
+   "t": 422.67
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_yes_head",
+   "t": 427.31
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L039.wav",
+   "subtitle": "嗯。到时候，顺路。",
+   "duration": 5.069999999999999,
+   "t": 427.31
+  },
+  {
+   "type": "camera",
+   "pos": [
+    4,
+    2.5,
+    0
+   ],
+   "look": [
+    0,
+    1.0,
+    -5.5
+   ],
+   "transition": 1.2,
+   "t": 433.68
+  },
+  {
+   "type": "subtitle",
+   "text": "另一边，阿风抱着写了一半的见闻录，睡得口水都要流出来了。",
+   "t": 433.68
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_sleep",
+   "t": 443.5
+  },
+  {
+   "type": "subtitle",
+   "text": "梦里，他的书已经印好了，扉页上写着：献给草海的风。",
+   "t": 443.5
+  },
+  {
+   "type": "environment",
+   "preset": "dawn",
+   "t": 452.9
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    2.5,
+    2
+   ],
+   "look": [
+    0,
+    1.2,
+    -5.5
+   ],
+   "transition": 1.5,
+   "t": 452.9
+  },
+  {
+   "type": "subtitle",
+   "text": "东方泛起蟹壳青，新的一天来了。",
+   "t": 452.9
+  },
+  {
+   "type": "camera",
+   "name": "feng_close",
+   "transition": 0.8,
+   "t": 460.4
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_stretch",
+   "t": 460.4
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L040.wav",
+   "subtitle": "唔啊——睡得真好！今天就能到望风塔了吧！",
+   "duration": 5.119999999999999,
+   "t": 460.4
+  },
+  {
+   "type": "camera",
+   "name": "three_shot",
+   "transition": 0.8,
+   "t": 465.32
+  },
+  {
+   "type": "anim",
+   "actor": "ye",
+   "anim": "avatar_salute",
+   "t": 465.32
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L041.wav",
+   "subtitle": "收拾一下，出发。趁露水没干，路好走。",
+   "duration": 8.05,
+   "t": 465.32
+  },
+  {
+   "type": "anim",
+   "actor": "xue",
+   "anim": "avatar_bow",
+   "t": 473.17
+  },
+  {
+   "type": "voice",
+   "actor": "xue",
+   "file": "voice/tts_L042.wav",
+   "subtitle": "这一路，多谢两位照顾。信送到之后，我想请你们喝一杯热茶。",
+   "duration": 8.31,
+   "t": 473.17
+  },
+  {
+   "type": "voice",
+   "actor": "feng",
+   "file": "voice/tts_L043.wav",
+   "subtitle": "热茶就算了，要喝就喝庆功酒！",
+   "duration": 3.92,
+   "t": 481.28
+  },
+  {
+   "type": "voice",
+   "actor": "ye",
+   "file": "voice/tts_L044.wav",
+   "subtitle": "……庆功酒，可以。",
+   "duration": 3.75,
+   "t": 485.0
+  },
+  {
+   "type": "subtitle",
+   "text": "三人收拾行装，踏上了最后一段路。晨光把影子拉得很长。",
+   "t": 488.55
+  },
+  {
+   "type": "camera",
+   "name": "far",
+   "transition": 1.2,
+   "t": 495.09
+  },
+  {
+   "type": "move",
+   "actor": "xue",
+   "to": [
+    1,
+    0,
+    -13
+   ],
+   "duration": 7.0,
+   "t": 495.09
+  },
+  {
+   "type": "move",
+   "actor": "ye",
+   "to": [
+    -1,
+    0,
+    -13
+   ],
+   "duration": 7.0,
+   "t": 495.09
+  },
+  {
+   "type": "move",
+   "actor": "feng",
+   "to": [
+    0,
+    0,
+    -11
+   ],
+   "duration": 6.0,
+   "t": 502.49
+  },
+  {
+   "type": "anim",
+   "actor": "feng",
+   "anim": "avatar_hello",
+   "t": 504.49
+  },
+  {
+   "type": "subtitle",
+   "text": "阿风小跑几步，追上了前面的两个人。",
+   "t": 507.09
+  },
+  {
+   "type": "orbit",
+   "look": [
+    0,
+    1.0,
+    -8
+   ],
+   "radius": 10,
+   "height": 3.0,
+   "from_deg": 0,
+   "to_deg": 210,
+   "duration": 24,
+   "t": 514.87
+  },
+  {
+   "type": "subtitle",
+   "text": "帕米尔的黎明，和昨天一样明亮。",
+   "t": 514.87
+  },
+  {
+   "type": "subtitle",
+   "text": "风还在吹，路还在脚下。而他们的故事，才刚刚开始。",
+   "t": 519.87
+  },
+  {
+   "type": "camera",
+   "pos": [
+    0,
+    14,
+    20
+   ],
+   "look": [
+    0,
+    0,
+    -10
+   ],
+   "transition": 3.0,
+   "t": 538.13
+  },
+  {
+   "type": "end",
+   "t": 544.13
+  }
+ ]
+}

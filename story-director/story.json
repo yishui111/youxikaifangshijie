@@ -1,0 +1,43 @@
+{
+	"title": "初遇 · The First Encounter",
+	"loop": false,
+	"actors": {
+		"feng":  { "display": "风",  "model": "models/角色1.vrm", "start": [-2.5, 0, -3] },
+		"xue":   { "display": "雪",  "model": "models/角色2.vrm", "start": [2.5, 0, -1] },
+		"ye":    { "display": "夜",  "model": "models/角色3.vrm", "start": [0, 0, 1.5] }
+	},
+	"cameras": {
+		"wide":      { "pos": [0, 3.5, 9],     "look": [0, 1.2, -0.5] },
+		"feng_close":{ "pos": [-1.2, 1.5, 1.2], "look": [-2.2, 1.2, -2.5] },
+		"xue_close": { "pos": [0.8, 1.5, 2.2],  "look": [2.3, 1.2, -0.5] },
+		"three_shot":{ "pos": [0, 1.6, 5.5],    "look": [0, 1.1, -0.8] }
+	},
+	"timeline": [
+		{ "t": 0.0,  "type": "environment", "preset": "day" },
+		{ "t": 0.0,  "type": "bgm" },
+		{ "t": 0.0,  "type": "orbit", "look": [0, 1.1, -0.5], "radius": 7, "height": 2.2,
+		  "from_deg": 20, "to_deg": 75, "duration": 7 },
+		{ "t": 0.5,  "type": "subtitle", "text": "风起草原，三位旅人的命运在此交汇……", "duration": 4 },
+
+		{ "t": 7.0,  "type": "camera", "name": "feng_close", "transition": 0.8 },
+		{ "t": 7.2,  "type": "anim", "actor": "feng", "anim": "avatar_hello" },
+		{ "t": 7.6,  "type": "voice", "actor": "feng", "file": "voice/tts_DEMO1.wav", "duration": 5.3,
+		  "subtitle": "你们好！我叫小风，是第一次来到帕米尔大陆。" },
+
+		{ "t": 13.2, "type": "camera", "name": "xue_close", "transition": 0.7 },
+		{ "t": 13.4, "type": "anim", "actor": "xue", "anim": "avatar_bow" },
+		{ "t": 13.8, "type": "voice", "actor": "xue", "file": "voice/tts_DEMO2.wav", "duration": 8.3,
+		  "subtitle": "欢迎你，小风。我叫雪，这位是夜，我们在这里等你很久了。" },
+
+		{ "t": 22.4, "type": "camera", "name": "three_shot", "transition": 0.8 },
+		{ "t": 22.6, "type": "anim", "actor": "ye", "anim": "avatar_yes_head" },
+		{ "t": 23.0, "type": "voice", "actor": "ye", "file": "voice/tts_DEMO3.wav", "duration": 7.0,
+		  "subtitle": "你好。旅途才刚刚开始，请多指教。" },
+
+		{ "t": 30.5, "type": "anim", "actor": "feng", "anim": "avatar_jumpforjoy" },
+		{ "t": 30.8, "type": "voice", "actor": "feng", "file": "voice/tts_DEMO1.wav", "duration": 5.3,
+		  "subtitle": "那么——出发吧！" },
+		{ "t": 36.5, "type": "camera", "pos": [0, 8, 12], "look": [0, 0, 0], "transition": 1.5 },
+		{ "t": 38.0, "type": "end" }
+	]
+}
