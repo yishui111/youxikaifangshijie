@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>完整流程 · 剧本 → 演出 → 出片</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; display: flex; height: 100vh; overflow: hidden; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #bigsub { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); background: rgba(0,0,0,.62);
+            color: #fff; font-size: 21px; padding: 11px 24px; border-radius: 10px; white-space: nowrap; display: none; }
+  #theend { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 46px;
+            letter-spacing: 12px; text-shadow: 0 2px 8px black; display: none; }
+  #rec { position: absolute; left: 14px; top: 14px; background: rgba(0,0,0,.6); color: #ff6b6b;
+         font-size: 14px; padding: 6px 14px; border-radius: 6px; display: none; }
+  #panel { width: 360px; background: #1b1e27; border-left: 1px solid #2a2e3a; padding: 14px; }
+  h1 { font-size: 16px; color: #9db8ff; margin-bottom: 10px; }
+  select { width: 100%; padding: 7px; background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 6px; margin-bottom: 10px; }
+  button { width: 100%; padding: 10px; background: #232734; color: #dde2ea; border: 1px solid #333949;
+           border-radius: 8px; cursor: pointer; margin-bottom: 8px; font-size: 13px; }
+  button:hover { border-color: #4a5470; }
+  #playBtn { background: #3d5afe; border: none; color: white; font-size: 14px; }
+  #recBtn { background: #c0392b; border: none; color: white; font-size: 14px; }
+  #progress { height: 10px; background: #232734; border-radius: 5px; overflow: hidden; margin: 10px 0 4px; }
+  #fill { height: 100%; width: 0; background: linear-gradient(90deg,#3d5afe,#7c9bff); }
+  #clock { font-size: 18px; font-family: Consolas, monospace; color: #9db8ff; margin-bottom: 8px; }
+  #status { font-size: 12px; color: #8b93a5; margin-top: 8px; line-height: 1.5; }
+  a.dl { display: block; background: #1f4d2e; border: 1px solid #2e6b40; color: #6ee7a0; border-radius: 8px;
+         padding: 10px; margin: 8px 0; text-align: center; text-decoration: none; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bigsub"></div>
+  <div id="theend">剧 终</div>
+  <div id="rec">● REC</div>
+</div>
+<div id="panel">
+  <h1>完整流程 · 剧本 → 演出 → 出片</h1>
+  <select id="storySel">
+    <option value="/story.json">示例短剧《初遇》（38 秒）</option>
+    <option value="/story_10min.json">长剧《帕米尔的黎明》（9 分半）</option>
+  </select>
+  <button id="loadBtn">① 载入剧本与演员</button>
+  <button id="playBtn">▶ ② 开始演出</button>
+  <button id="recBtn">● ③ 录制并演出（输出视频）</button>
+  <div id="progress"><div id="fill"></div></div>
+  <div id="clock">--</div>
+  <div id="status">选择剧本后点①。</div>
+  <div id="downloads"></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, VRMLookAtQuaternionProxy, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const $ = (s) => document.querySelector(s);
+const status = (t) => { $('#status').textContent = t; };
+const FPS = 30;
+
+// ---------- 舞台 ----------
+const stage = $('#stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87a8d0);
+
+const camera = new THREE.PerspectiveCamera(35, stage.clientWidth / stage.clientHeight, 0.1, 100);
+camera.position.set(0, 1.5, 4.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.95, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(2, 4, 3);
+sun.castShadow = true;
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x8899ff, 0.3));
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(9, 48),
+  new THREE.MeshStandardMaterial({ color: 0x5d7a4a, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+window.addEventListener('resize', () => {
+  renderer.setSize(stage.clientWidth, stage.clientHeight);
+  camera.aspect = stage.clientWidth / stage.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ---------- 加载器 ----------
+const loader = new GLTFLoader();
+loader.register((p) => new VRMLoaderPlugin(p));
+loader.register((p) => new VRMAnimationLoaderPlugin(p));
+const loadGLTF = (url) => new Promise((res, rej) => loader.load(url, res, undefined, rej));
+const toRes = (p) => p.startsWith('/') ? p : '/' + p.replace(/^models\//, '/models/').replace(/^voice\//, '/voice/').replace(/^audio\//, '/audio/');
+
+// ---------- 导演状态 ----------
+const D = {
+  story: null, actors: {}, events: [], idx: 0, clock: 0, playing: false,
+  moves: [], camLerp: null, orbit: null, envLerp: null, ended: false,
+  isMovie: false, clipCache: {}, animCache: {},
+};
+
+// ---------- 演员加载 ----------
+async function addActor(aid, cfg) {
+  status('加载模型 ' + aid + ' …');
+  let modelPath = cfg.get ? cfg.get('model') : cfg.model;
+  model_path_fix: modelPath = toRes(modelPath || ('/models/' + aid + '.vrm'));
+  const gltf = await loadGLTF(modelPath);
+  const vrm = gltf.userData.vrm;
+  if (VRMUtils.combineSkeletons) VRMUtils.combineSkeletons(gltf.scene);
+  const lookProxy = new VRMLookAtQuaternionProxy();
+  lookProxy.name = 'VRMLookAtQuaternionProxy';
+  gltf.scene.add(lookProxy);
+  gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  const obj = gltf.scene;
+  const st = cfg.get ? cfg.get('start') : cfg.start;
+  if (st) obj.position.set(st[0], st[2], st[1]);
+  obj.rotation.y = Math.PI;
+  scene.add(obj);
+  const mixer = new THREE.AnimationMixer(obj);
+  const actor = { id: aid, obj, vrm, mixer, action: null, actionName: '', actionEnd: 0, voiceUntil: 0 };
+  D.actors[aid] = actor;
+}
+
+const clipCache = {};
+async function getClip(actor, animName) {
+  const key = actor.id + '/' + animName;
+  if (clipCache[key]) return clipCache[key];
+  const agltf = await loadGLTF('/actions/' + encodeURIComponent(animName) + '.vrma');
+  const anim = agltf.userData.vrmAnimations[0];
+  if (!anim) return null;
+  const clip = createVRMAnimationClip(anim, actor.vrm);
+  clipCache[key] = clip;
+  return clip;
+}
+
+function playAction(actor, animName, loop, holdSec) {
+  return getClip(actor, animName).then(clip => {
+    if (!clip) { playAction(actor, 'idle_loop', true); return; }
+    if (actor.action) actor.action.stop();
+    actor.action = actor.mixer.clipAction(clip);
+    actor.action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    actor.action.clampWhenFinished = !loop;
+    actor.action.reset().play();
+    actor.actionName = animName;
+    const dur = Number.isFinite(clip.duration) ? clip.duration : 1;
+    actor.actionEnd = D.clock + (loop ? (holdSec || 3) : dur);
+  }).catch(() => playAction(actor, 'idle_loop', true));
+}
+
+// ---------- 导演逐帧逻辑 ----------
+
+function fire(e) {
+  const type = e.type;
+  if (type === 'anim') {
+    const a = D.actors[e.actor];
+    if (a) playAction(a, e.anim, !!e.loop, e.hold || 3.0);
+  } else if (type === 'move') {
+    const a = D.actors[e.actor];
+    if (a) D.moves.push({ obj: a.obj, from: a.obj.position.clone(),
+      to: new THREE.Vector3(e.to[0], e.to[2], e.to[1]),
+      t0: D.clock, t1: D.clock + (e.duration || 1) });
+  } else if (type === 'place') {
+    const a = D.actors[e.actor];
+    if (a) a.obj.position.set(e.to[0], e.to[2], e.to[1]);
+  } else if (type === 'face') {
+    const a = D.actors[e.actor];
+    if (a) {
+      const p = new THREE.Vector3(e.to[0], e.to[2], e.to[1]);
+      const d = p.sub(a.obj.position);
+      a.obj.rotation.y = Math.atan2(d.x, d.z) + Math.PI;
+    }
+  } else if (type === 'voice') {
+    playVoice(e);
+  } else if (type === 'subtitle') {
+    showSub(e.text || '', e.duration || 4);
+  } else if (type === 'environment') {
+    applyEnv(e);
+  } else if (type === 'bgm') {
+    playBGM(e);
+  } else if (type === 'end') {
+    D.ended = true;
+    $('#theend').style.display = 'block';
+    if (D.isMovie) setTimeout(() => stopAll(), 1500);
+  }
+}
+
+const VOICE = {};
+function playVoice(e) {
+  const file = (e.file || '').replace(/^voice\//, '/voice/');
+  let text = e.subtitle || '';
+  const disp = D.story.actors[e.actor]?.display;
+  if (disp && text) text = disp + '：' + text;
+  showSub(text, e.duration || 4.5);
+  if (!file) return;
+  let el = VOICE[file];
+  if (!el) {
+    el = new Audio(file);
+    el.preload = 'auto';
+    wireAudio(el);
+    VOICE[file] = el;
+  }
+  el.currentTime = 0;
+  el.play().catch(() => status('语音播放失败（浏览器需点击页面后才有声音）'));
+  const a = D.actors[e.actor];
+  if (a) {
+    a.voiceUntil = D.clock + (e.duration || 4.5);
+    const tickTalk = () => {
+      if (D.clock > a.voiceUntil) {
+        if (a.actionName === 'avatar_talk') playAction(a, 'idle_loop', true);
+        return;
+      }
+      if (a.actionName === '' || a.actionName === 'idle_loop') playAction(a, 'avatar_talk', true, a.voiceUntil - D.clock);
+      setTimeout(tickTalk, 300);
+    };
+    tickTalk();
+  }
+}
+
+const SUB = { el: null, until: 0 };
+function showSub(text, dur) {
+  if (!SUB.el) SUB.el = $('#bigsub');
+  SUB.el.textContent = text;
+  SUB.el.style.display = text ? 'block' : 'none';
+  SUB.until = D.clock + dur;
+}
+
+let bgmEl = null;
+function playBGM(e) {
+  if (!bgmEl) {
+    bgmEl = new Audio('/audio/bgm.wav');
+    bgmEl.loop = true;
+    wireAudio(bgmEl);
+  }
+  bgmEl.volume = Math.pow(10, (e.volume_db || -14) / 20);
+  bgmEl.currentTime = 0;
+  bgmEl.play().catch(() => {});
+}
+
+// 声音接入录制总线
+const audioCtx = new AudioContext();
+const recDest = audioCtx.createMediaStreamDestination();
+function wireAudio(el) {
+  try {
+    const src = audioCtx.createMediaElementSource(el);
+    src.connect(audioCtx.destination);
+    src.connect(recDest);
+  } catch (e) { /* 已接线 */ }
+}
+
+// ---------- 环境预设 ----------
+const ENV = {
+  day:    { sky: 0x87a8d0, sunC: 0xffffff, sunI: 1.6, sunP: [2, 4, 3], fog: null },
+  sunset: { sky: 0xf0a167, sunC: 0xff8c4d, sunI: 2.2, sunP: [-4, 1.5, 3], fog: 0xd98c66 },
+  night:  { sky: 0x0a0e1a, sunC: 0x8ca6ff, sunI: 0.5, sunP: [-3, 4, -2], fog: 0x0d1220 },
+  dawn:   { sky: 0xe8b08c, sunC: 0xffb88c, sunI: 1.8, sunP: [5, 2, -3], fog: 0xc9a08a },
+};
+let envLerp = null;
+function applyEnv(e) {
+  const p = ENV[e.preset] || ENV.day;
+  const from = { sky: scene.background.clone(), sunC: sun.color.clone(), sunI: sun.intensity,
+                 sunP: sun.position.clone(), fogC: scene.fog ? scene.fog.color.clone() : new THREE.Color(0x87a8d0) };
+  const to = { sky: new THREE.Color(e.sky ?? p.sky), sunC: new THREE.Color(e.sun_color ? rgb(e.sun_color) : p.sunC),
+               sunI: e.sun_energy ?? p.sunI, sunP: new THREE.Vector3(...(e.sun_deg ? deg2pos(e.sun_deg) : p.sunP)),
+               fogC: new THREE.Color(e.fog_density != null ? (p.fog ?? 0x87a8d0) : 0x87a8d0) };
+  envLerp = { from, to, t0: D.clock, dur: 1.2 };
+}
+function rgb(a) { return (a[0] << 16) + (a[1] << 8) + a[2]; }
+function deg2pos(s) {
+  const a = s[1] * Math.PI / 180, r = 8;
+  return [Math.sin(a) * r, -s[0] * 0.08 + 3, Math.cos(a) * r];
+}
+
+function tickEnv() {
+  if (!envLerp) return;
+  const k = Math.min(1, (D.clock - envLerp.t0) / envLerp.dur);
+  scene.background.lerpColors(envLerp.from.sky, envLerp.to.sky, k);
+  sun.color.lerpColors(envLerp.from.sunC, envLerp.to.sunC, k);
+  sun.intensity = envLerp.from.sunI + (envLerp.to.sunI - envLerp.from.sunI) * k;
+  sun.position.lerpVectors(envLerp.from.sunP, envLerp.to.sunP, k);
+  if (scene.fog) scene.fog.color.lerpColors(envLerp.from.fogC, envLerp.to.fogC, k);
+  if (k >= 1) envLerp = null;
+}
+
+// ---------- 镜头 ----------
+function applyCam(name) {
+  const c = D.story.cameras[name];
+  if (!c) return;
+  const p = new THREE.Vector3(c.pos[0], c.pos[2], c.pos[1]);
+  const l = new THREE.Vector3(c.look[0], c.look[2], c.look[1]);
+  startCamLerp(p, l, 0.01);
+}
+let camPose = { pos: new THREE.Vector3(0, 1.5, 4.2), look: new THREE.Vector3(0, 0.95, 0) };
+function startCamLerp(pos, look, dur) {
+  D.orbit = null;
+  camLerp = { fromP: camera.position.clone(), fromL: controls.target.clone(),
+              toP: pos, toL: look, t0: D.clock, dur: Math.max(dur, 0.01) };
+}
+function tickCam() {
+  if (D.orbit) {
+    const o = D.orbit;
+    const k = Math.min(1, (D.clock - o.t0) / o.dur);
+    const deg = (o.from + (o.to - o.from) * k) * Math.PI / 180;
+    const pos = new THREE.Vector3(o.look.x + Math.sin(deg) * o.radius, o.look.y + o.height, o.look.z + Math.cos(deg) * o.radius);
+    camera.position.copy(pos);
+    controls.target.copy(o.look);
+    controls.update();
+    if (k >= 1) D.orbit = null;
+    return;
+  }
+  if (camLerp) {
+    const k = Math.min(1, (D.clock - camLerp.t0) / camLerp.dur);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    camera.position.lerpVectors(camLerp.fromP, camLerp.toP, e);
+    controls.target.lerpVectors(camLerp.fromL, camLerp.toL, e);
+    controls.update();
+    if (k >= 1) camLerp = null;
+  }
+}
+function fireCamera(e) {
+  const cameras = D.story.cameras || {};
+  let pos, look;
+  if (e.name && cameras[e.name]) {
+    pos = new THREE.Vector3(cameras[e.name].pos[0], cameras[e.name].pos[2], cameras[e.name].pos[1]);
+    look = new THREE.Vector3(cameras[e.name].look[0], cameras[e.name].look[2], cameras[e.name].look[1]);
+  } else if (e.pos) {
+    pos = new THREE.Vector3(e.pos[0], e.pos[2], e.pos[1]);
+    look = new THREE.Vector3(e.look[0], e.look[2], e.look[1]);
+  } else return;
+  const trans = e.transition || 0;
+  startCamLerp(pos, look, trans > 0.01 ? trans : 0.01);
+}
+
+// ---------- 主 tick ----------
+function tick(dt) {
+  if (!D.playing || D.ended) return;
+  D.clock += dt;
+  while (D.idx < D.events.length && D.events[D.idx].t <= D.clock) {
+    fire(D.events[D.idx]);
+    D.idx++;
+  }
+  // 移动补间
+  for (const m of D.moves) {
+    const k = Math.min(1, Math.max(0, (D.clock - m.t0) / (m.t1 - m.t0)));
+    m.obj.position.lerpVectors(m.from, m.to, k);
+  }
+  tickEnv();
+  tickCam();
+  // 动作结束回待机
+  for (const id in D.actors) {
+    const a = D.actors[id];
+    if (a.actionName && a.actionName !== 'idle_loop' && D.clock > a.actionEnd && D.clock > a.voiceUntil) {
+      playAction(a, 'idle_loop', true);
+    }
+  }
+  // 字幕到期
+  if (SUB.until && D.clock > SUB.until) { SUB.el.style.display = 'none'; SUB.until = 0; }
+  // 进度
+  const total = storyDuration();
+  $('#fill').style.width = Math.min(100, D.clock / total * 100) + '%';
+  $('#clock').textContent = D.clock.toFixed(1) + 's / ' + total.toFixed(0) + 's';
+}
+
+function storyDuration() {
+  let last = 10;
+  for (const e of D.events) last = Math.max(last, e.t + 2);
+  return last;
+}
+
+// ---------- 快进/手动驱动（自动化测试用） ----------
+window.__director = {
+  tick: (dt) => tick(dt),
+  state: D,
+  actors: () => D.actors,
+};
+
+// ---------- 载入剧本 ----------
+let loadedKey = '';
+async function loadStory(path) {
+  if (loadedKey === path) return;
+  loadedKey = path;
+  status('载入剧本 …');
+  const story = await (await fetch(path)).json();
+  D.story = story;
+  D.events = [...story.timeline].sort((a, b) => a.t - b.t);
+  // 演员
+  for (const aid in story.actors) await addActor(aid, story.actors[aid]);
+  // 预热动作缓存
+  status('预热动作库 …');
+  for (const e of D.events) {
+    if (e.type === 'anim' && D.actors[e.actor]) await getClip(D.actors[e.actor], e.anim);
+  }
+  await getClip(D.actors[Object.keys(D.actors)[0]], 'idle_loop');
+  status('就绪：' + story.title);
+}
+
+// ---------- 播放控制 ----------
+async function startPlay(record) {
+  if (!D.story) return;
+  await audioCtx.resume().catch(() => {});
+  D.playing = true; D.ended = false;
+  D.clock = 0; D.idx = 0; D.moves = []; D.orbit = null; camLerp = null; envLerp = null;
+  $('#theend').style.display = 'none';
+  SUB.until = 0; SUB.el = $('#bigsub'); SUB.el.style.display = 'none';
+  for (const id in D.actors) {
+    const a = D.actors[id];
+    if (a.action) a.action.stop();
+    playAction(a, 'idle_loop', true);
+  }
+  if (record) {
+    const stream = renderer.domElement.captureStream(30);
+    recStream = new MediaStream([...stream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+    chunks = [];
+    rec = new MediaRecorder(recStream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8_000_000 });
+    rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+    rec.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const a = document.createElement('a');
+      a.className = 'dl';
+      a.href = URL.createObjectURL(blob);
+      a.download = 'story_web.webm';
+      a.textContent = '⬇ 下载成片 story_web.webm (' + Math.round(blob.size / 1024) + ' KB)';
+      $('#downloads').appendChild(a);
+      $('#rec').style.display = 'none';
+      status('录制完成，文件在下方 ↓');
+      rec = null;
+    };
+    rec.start();
+    D.isMovie = true;
+    $('#rec').style.display = 'block';
+  }
+  status(record ? '录制中：演出进行…' : '演出中…');
+}
+
+function stopAll() {
+  D.playing = false;
+  if (rec && rec.state === 'recording') rec.stop();
+  bgmEl && bgmEl.pause();
+  status('演出结束');
+}
+
+let rec = null, recStream = null, chunks = [];
+$('#loadBtn').addEventListener('click', async () => {
+  await audioCtx.resume().catch(() => {});
+  loadedKey = '';
+  await loadStory($('#storySel').value);
+});
+$('#playBtn').addEventListener('click', async () => {
+  await audioCtx.resume().catch(() => {});
+  if (!D.story) await loadStory($('#storySel').value);
+  startPlay(false);
+});
+$('#recBtn').addEventListener('click', async () => {
+  await audioCtx.resume().catch(() => {});
+  if (!D.story) await loadStory($('#storySel').value);
+  startPlay(true);
+});
+
+// 自动化接口：手动驱动时间轴与截帧（隐藏面板调试用）
+window.__directorTick = (dt) => tick(dt);
+window.__capture = () => {
+  controls.target.set(0, 0.95, 0);
+  renderer.render(scene, camera);
+  return renderer.domElement.toDataURL('image/jpeg', 0.8);
+};
+
+// 自动测试模式：?autotest=1
+if (new URLSearchParams(location.search).has('autotest')) {
+  (async () => {
+    window.__testShots = {};
+    window.__testLog = [];
+    const log = (m) => window.__testLog.push(`[${D.clock.toFixed(1)}s] ` + m);
+    await loadStory('/story.json');
+    log('剧本载入完成');
+    await startPlay(false);
+    log('演出开始');
+    const beats = { 3: 't03', 8: 't08', 14: 't14', 20: 't20', 30: 't30', 37: 't37' };
+    const iv = setInterval(() => {
+      window.__directorTick(0.25);
+      for (const bt in beats) {
+        if (D.clock >= +bt && !window.__testShots[beats[bt]]) {
+          window.__testShots[beats[bt]] = window.__capture();
+          log('截帧 @ ' + bt + 's');
+        }
+      }
+      if (D.ended) {
+        clearInterval(iv);
+        log('演出结束');
+        window.__testDone = true;
+      }
+    }, 250);
+    setTimeout(() => { clearInterval(iv); window.__testDone = true; }, 240000);
+  })();
+}
+
+// ---------- 渲染循环 ----------
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const d = Math.min(clock.getDelta(), 0.1);
+  tick(d);
+  for (const id in D.actors) D.actors[id].mixer.update(d);
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
