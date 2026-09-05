@@ -21,3 +21,4 @@ Thumbs.db
 .godot/
 *.vrma
 /story-director/actions/
+*.vrm
