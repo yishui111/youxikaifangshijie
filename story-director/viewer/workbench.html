@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>故事导演 · 工作台</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Microsoft YaHei", sans-serif; background: #14161c; color: #dde2ea; height: 100vh; display: flex; overflow: hidden; }
+  #editorPane { width: 430px; min-width: 430px; background: #161920; border-right: 1px solid #2a2e3a; display: flex; flex-direction: column; }
+  #etool { padding: 8px; display: flex; gap: 6px; align-items: center; border-bottom: 1px solid #2a2e3a; }
+  #etool button { padding: 7px 12px; background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  #etool #runBtn { background: #3d5afe; border: none; color: #fff; font-weight: bold; }
+  #etool #runBtn:hover { background: #516bff; }
+  #saveState { font-size: 11px; color: #6ee7a0; margin-left: auto; }
+  #script { flex: 1; background: #101218; color: #d6e2f5; border: none; resize: none; padding: 12px;
+            font-family: Consolas, "Microsoft YaHei", monospace; font-size: 13px; line-height: 1.7; outline: none; }
+  #help { border-top: 1px solid #2a2e3a; font-size: 12px; color: #8b93a5; padding: 6px 10px; }
+  #help summary { cursor: pointer; color: #9db8ff; }
+  #help pre { font-size: 11px; line-height: 1.7; margin: 6px 0; white-space: pre-wrap; }
+  #rightPane { flex: 1; display: flex; flex-direction: column; }
+  #stage { flex: 1; position: relative; }
+  #stage canvas { display: block; }
+  #stageTop { position: absolute; left: 10px; top: 10px; display: flex; gap: 8px; align-items: center;
+              background: rgba(0,0,0,.5); padding: 6px 10px; border-radius: 8px; font-size: 12px; }
+  #stageTop select { background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 5px; padding: 3px 6px; font-size: 12px; }
+  #envBtns { position: absolute; right: 10px; top: 10px; display: flex; gap: 5px; }
+  #envBtns button { padding: 4px 10px; background: rgba(0,0,0,.5); color: #dde2ea; border: 1px solid #ffffff33; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  #envBtns button.on { background: #3d5afe; border-color: #3d5afe; color: #fff; }
+  #rec { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(0,0,0,.6);
+         color: #ff6b6b; font-size: 14px; padding: 6px 14px; border-radius: 6px; display: none; }
+  #bigsub { position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%); background: rgba(0,0,0,.62);
+            color: #fff; font-size: 21px; padding: 11px 24px; border-radius: 10px; white-space: nowrap; display: none; }
+  #theend { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); color: #fff; font-size: 46px;
+            letter-spacing: 12px; text-shadow: 0 2px 8px black; display: none; }
+  #ctrl { background: #1b1e27; border-top: 1px solid #2a2e3a; padding: 10px 14px; }
+  #ctrl .row { display: flex; gap: 10px; align-items: center; }
+  #ctrl button { padding: 8px 14px; background: #232734; color: #dde2ea; border: 1px solid #333949; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  #ctrl #recBtn { background: #c0392b; border: none; color: white; }
+  #progress { height: 8px; background: #232734; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+  #fill { height: 100%; width: 0; background: linear-gradient(90deg,#3d5afe,#7c9bff); }
+  #clock { font-size: 15px; font-family: Consolas, monospace; color: #9db8ff; margin-top: 4px; }
+  #status { font-size: 12px; color: #8b93a5; margin-top: 6px; min-height: 16px; }
+  a.dl { display: inline-block; background: #1f4d2e; border: 1px solid #2e6b40; color: #6ee7a0; border-radius: 6px;
+         padding: 6px 12px; margin: 6px 6px 0 0; text-decoration: none; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="editorPane">
+  <div id="etool">
+    <button id="runBtn">▶ 运行</button>
+    <button id="stopBtn">■ 停止</button>
+    <button id="saveBtn">💾 保存剧本</button>
+    <span id="saveState"></span>
+  </div>
+  <textarea id="script" spellcheck="false"></textarea>
+  <details id="help">
+    <summary>语法速查（每行一条，格式：时间 指令）</summary>
+<pre>演员 风 = 角色1.vrm        ← 定义演员（模型文件）
+0秒 光照 白天               ← 白天/黄昏/夜晚/黎明
+1秒 字幕 风起草原……        ← 旁白字幕
+2秒 [风] 挥手               ← 中文动作（见下）
+3秒 [风] 说 你们好呀！      ← 台词字幕+说话手势
+5秒 [雪] 跳舞 6秒           ← 循环类动作可带时长
+8秒 [风] 走                 ← 走/跑/说话 会循环
+10秒 镜头 环绕 8秒          ← 环绕/全景/中景/特写/远景
+14秒 镜头 特写 风           ← 特写可指定对准谁
+0秒 场景 东京街景.glb       ← 切换场景文件（scenes/ 文件夹）
+0秒 背景 music.mp3          ← 背景音乐（可选）
+
+常用动作中文：挥手 鞠躬 拍手 跳 跑 走 开心 大笑 难过 生气
+惊讶 害羞 跳舞 坐下 睡觉 敬礼 点头 摇头 指我 指你 伸懒腰
+加油 喝水 后空翻 飞吻 吹口哨 告别（也可以直接写英文名）</pre>
+  </details>
+</div>
+<div id="rightPane">
+  <div id="stage">
+    <div id="stageTop">场景：<select id="sceneSel"><option value="">默认草原</option></select></div>
+    <div id="envBtns">
+      <button data-env="白天" class="on">白天</button><button data-env="黄昏">黄昏</button>
+      <button data-env="夜晚">夜晚</button><button data-env="黎明">黎明</button>
+    </div>
+    <div id="rec">● REC</div>
+    <div id="bigsub"></div>
+    <div id="theend">剧 终</div>
+  </div>
+  <div id="ctrl">
+    <div class="row">
+      <button id="recBtn">● 录制演出（.webm）</button>
+      <span id="clock">--</span>
+    </div>
+    <div id="progress"><div id="fill"></div></div>
+    <div id="downloads"></div>
+    <div id="status">点"运行"开始演出。</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRMLoaderPlugin, VRMUtils } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, VRMLookAtQuaternionProxy, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const $ = (s) => document.querySelector(s);
+const status = (t) => { $('#status').textContent = t; };
+const FPS = 30;
+
+// ---------- 舞台 ----------
+const stage = $('#stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(stage.clientWidth, stage.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87a8d0);
+
+const camera = new THREE.PerspectiveCamera(35, stage.clientWidth / stage.clientHeight, 0.1, 200);
+camera.position.set(0, 1.5, 4.2);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.95, 0);
+controls.enableDamping = true;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(2, 4, 3);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+scene.add(sun);
+scene.add(new THREE.DirectionalLight(0x8899ff, 0.3));
+
+const ground = new THREE.Mesh(new THREE.CircleGeometry(12, 48),
+  new THREE.MeshStandardMaterial({ color: 0x5d7a4a, roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+window.addEventListener('resize', () => {
+  renderer.setSize(stage.clientWidth, stage.clientHeight);
+  camera.aspect = stage.clientWidth / stage.clientHeight;
+  camera.updateProjectionMatrix();
+});
+
+// ---------- 加载器（含 DRACO） ----------
+const draco = new DRACOLoader();
+draco.setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/');
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
+loader.register((p) => new VRMLoaderPlugin(p));
+loader.register((p) => new VRMAnimationLoaderPlugin(p));
+const loadGLTF = (url) => new Promise((res, rej) => loader.load(url, res, undefined,
+  (e) => rej(new Error(e.message || '加载失败'))));
+
+// ---------- 中文动作别名 ----------
+const ALIAS = {
+  '挥手':'avatar_hello','打招呼':'avatar_hello','鞠躬':'avatar_bow','拍手':'avatar_clap','鼓掌':'avatar_clap',
+  '跳':'avatar_jump','跳跃':'avatar_jump','后空翻':'avatar_backflip','走路':'avatar_walk','走':'avatar_walk',
+  '跑步':'avatar_run','跑':'avatar_run','跳舞':'avatar_dance1','跳舞1':'avatar_dance1','跳舞2':'avatar_dance2',
+  '跳舞3':'avatar_dance3','坐下':'avatar_sit_ground','坐':'avatar_sit_ground','睡觉':'avatar_sleep','睡':'avatar_sleep',
+  '开心':'avatar_express_laugh','笑':'avatar_express_laugh','大笑':'avatar_express_laugh','难过':'avatar_express_sad',
+  '生气':'avatar_express_anger','惊讶':'avatar_express_surprise','吃惊':'avatar_express_surprise',
+  '害羞':'avatar_express_embarrased','担忧':'avatar_express_worry','眨眼':'avatar_express_wink',
+  '耸肩':'avatar_express_shrug','敬礼':'avatar_salute','点头':'avatar_yes_head','摇头':'avatar_no_head',
+  '指我':'avatar_point_me','指你':'avatar_point_you','伸懒腰':'avatar_stretch','加油':'avatar_fist_pump',
+  '喝水':'avatar_drink','飞吻':'avatar_blowkiss','吹口哨':'avatar_whistle','告别':'avatar_away',
+  '说话':'avatar_talk','打字':'avatar_type','思考':'avatar_type','站立':'avatar_stand',
+};
+const resolveAnim = (name) => ALIAS[name] || (name.startsWith('avatar_') || name.startsWith('cmu_') || name === 'idle_loop' ? name : 'avatar_' + name);
+
+// ---------- 导演状态 ----------
+const D = {
+  actors: {}, events: [], idx: 0, clock: 0, playing: false, ended: false, total: 20,
+  moves: [], camLerp: null, orbit: null, envLerp: null,
+};
+let sceneGroup = null;
+
+// ---------- 演员导入 ----------
+async function importActor(id, file) {
+  status('导入演员 ' + id + ' …');
+  const gltf = await loadGLTF('/models/' + encodeURIComponent(file));
+  const vrm = gltf.userData.vrm;
+  const proxy = new VRMLookAtQuaternionProxy();
+  proxy.name = 'VRMLookAtQuaternionProxy_' + id;
+  gltf.scene.add(proxy);
+  gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+  gltf.scene.name = '演员_' + id;
+  scene.add(gltf.scene);
+  const mixer = new THREE.AnimationMixer(gltf.scene);
+  const actor = { id, file, obj: gltf.scene, vrm, mixer, action: null, actionName: '', actionEnd: 0, voiceUntil: 0 };
+  D.actors[id] = actor;
+  status('演员就位: ' + id);
+  return actor;
+}
+
+const clipCache = {};
+async function getClip(actor, animName) {
+  const key = actor.file + '/' + animName;
+  if (clipCache[key]) return clipCache[key];
+  const agltf = await loadGLTF('/actions/' + encodeURIComponent(animName) + '.vrma');
+  const anim = agltf.userData.vrmAnimations[0];
+  if (!anim) return null;
+  const clip = createVRMAnimationClip(anim, actor.vrm);
+  clipCache[key] = clip;
+  return clip;
+}
+
+function playAction(actor, animName, loop, holdSec) {
+  return getClip(actor, animName).then(clip => {
+    if (!clip) { status('⚠ 没找到动作: ' + animName); return; }
+    if (actor.action) actor.action.stop();
+    actor.action = actor.mixer.clipAction(clip);
+    actor.action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    actor.action.clampWhenFinished = !loop;
+    actor.action.reset().play();
+    actor.actionName = animName;
+    const dur = Number.isFinite(clip.duration) ? clip.duration : 2;
+    actor.actionEnd = D.clock + (loop ? (holdSec || 3) : dur);
+  }).catch(() => status('⚠ 动作加载失败: ' + animName));
+}
+
+// ---------- 剧本解析（行式 DSL） ----------
+const BUILTIN_CAMS = {
+  '全景': { pos: [0, 4, 2], look: [0, 1.1, -2] },
+  '中景': { pos: [0, 1.8, 1], look: [0, 1.2, -2] },
+  '特写': { pos: [0.3, 1.5, 0.9], look: [0, 1.3, -1] },
+  '远景': { pos: [0, 5, 9], look: [0, 1, -3] },
+};
+
+function parseScript(text) {
+  const out = { actorDefs: {}, events: [] };
+  let lastActor = null;
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#') || line.startsWith('//')) continue;
+    let m;
+    // 演员 定义
+    if ((m = line.match(/^演员\s+(\S+)\s*=\s*(.+?\.vrm)\s*$/i))) {
+      out.actorDefs[m[1]] = m[2];
+      lastActor = m[1];
+      continue;
+    }
+    // 时间 + 指令
+    if (!(m = line.match(/^([\d.]+)\s*(?:秒)?\s+(.+)$/))) continue;
+    const t = parseFloat(m[1]);
+    let body = m[2];
+    let who = null;
+    if ((m = body.match(/^\[(.+?)\]\s*(.+)$/))) { who = m[1]; body = m[2]; }
+
+    if (body.startsWith('场景 ')) {
+      out.events.push({ t, type: 'sceneGLB', file: body.slice(3).trim() });
+      continue;
+    }
+    if (body.startsWith('光照 ')) {
+      out.events.push({ t, type: 'env', preset: body.slice(3).trim() });
+      continue;
+    }
+    if (body.startsWith('背景音乐 ')) {
+      out.events.push({ t, type: 'bgm', file: body.slice(5).trim() });
+      continue;
+    }
+    if (body.startsWith('镜头 ')) {
+      const cm = body.slice(3).trim().match(/^(\S+)(?:\s+(\S+))?(?:\s+(\d+(?:\.\d+)?)\s*秒)?/);
+      const kind = cm[1];
+      if (kind === '环绕') {
+        out.events.push({ t, type: 'cameraOrbit', dur: parseFloat(cm[3] || '8') });
+      } else {
+        out.events.push({ t, type: 'camera', cam: kind, target: cm[2] || null, trans: 0 });
+      }
+      continue;
+    }
+    if (body.startsWith('字幕 ')) {
+      out.events.push({ t, type: 'subtitle', text: body.slice(3), duration: 4 });
+      continue;
+    }
+    if (body.startsWith('语音 ')) {
+      out.events.push({ t, type: 'voice', file: body.slice(3).trim(), duration: 4.5 });
+      continue;
+    }
+    if (who) {
+      let mm;
+      if ((mm = body.match(/^说\s+(.+)$/))) {
+        out.events.push({ t, type: 'talk', actor: who, text: mm[1], duration: Math.max(3, mm[1].length * 0.22) });
+        continue;
+      }
+      if ((mm = body.match(/^移动\s+(-?[\d.]+)\s+(-?[\d.]+)(?:\s+持续\s*([\d.]+)\s*秒)?/))) {
+        out.events.push({ t, type: 'move', actor: who, to: [parseFloat(mm[1]), 0, parseFloat(mm[2])], duration: parseFloat(mm[3] || 3) });
+        continue;
+      }
+      const holdM = body.match(/\s(\d+(?:\.\d+)?)\s*秒$/);
+      const actRaw = holdM ? body.slice(0, holdM.index) : body;
+      out.events.push({ t, type: 'anim', actor: who, anim: actRaw, loop: !!holdM, hold: holdM ? parseFloat(holdM[1]) : 3 });
+      continue;
+    }
+    status('⚠ 无法识别的行: ' + line);
+  }
+  return out;
+}
+
+// ---------- 运行引擎 ----------
+
+function resolveActor(who) {
+  if (D.actors[who]) return D.actors[who];
+  const stem = who.replace(/\.vrm$/i, '');
+  return D.actors[stem] || null;
+}
+
+function fire(e) {
+  if (e.type === 'anim') {
+    const a = resolveActor(e.actor);
+    if (a) playAction(a, resolveAnim(e.anim), !!e.loop, e.hold || 3);
+  } else if (e.type === 'move') {
+    const a = resolveActor(e.actor);
+    if (a) D.moves.push({ obj: a.obj, from: a.obj.position.clone(),
+      to: new THREE.Vector3(e.to[0], e.to[2], e.to[1]), t0: D.clock, t1: D.clock + e.duration });
+  } else if (e.type === 'talk') {
+    const a = resolveActor(e.actor);
+    showSub((a ? a.id + '：' : '') + e.text, e.duration);
+    if (a) playAction(a, 'avatar_talk', true, e.duration);
+  } else if (e.type === 'subtitle') {
+    showSub(e.text, e.duration || 4);
+  } else if (e.type === 'voice') {
+    playVoiceFile(e.file.replace(/^voice\//, ''), e.duration || 4.5);
+  } else if (e.type === 'camera') {
+    applyCamera(e.cam, e.target, e.trans || 0);
+  } else if (e.type === 'cameraOrbit') {
+    startOrbit(e.dur);
+  } else if (e.type === 'sceneGLB') {
+    loadSceneGLB(e.file);
+  } else if (e.type === 'bgm') {
+    playBGM(e.file);
+  }
+}
+
+// ---------- 镜头引擎 ----------
+
+function applyCamera(kind, targetName, trans) {
+  const cam = BUILTIN_CAMS[kind] || BUILTIN_CAMS['全景'];
+  const pos = new THREE.Vector3(...cam.pos);
+  let look = new THREE.Vector3(...cam.look);
+  const a = targetName ? resolveActor(targetName) : null;
+  if (a) look = a.obj.position.clone().add(new THREE.Vector3(0, 1.2, 0));
+  startCamLerp(pos, look, trans);
+}
+
+function startCamLerp(pos, look, dur) {
+  D.orbit = null;
+  D.camLerp = { fromP: camera.position.clone(), fromL: controls.target.clone(),
+                toP: pos, toL: look, t0: D.clock, dur: Math.max(dur, 0.01) };
+}
+
+function startOrbit(dur) {
+  const target = controls.target.clone();
+  const cur = Math.atan2(camera.position.x - target.x, camera.position.z - target.z) * 180 / Math.PI;
+  D.orbit = { t0: D.clock, dur, target, radius: camera.position.distanceTo(target),
+              height: camera.position.y - target.y, from: cur, to: cur + 360 };
+}
+
+function tickCam() {
+  if (D.orbit) {
+    const o = D.orbit;
+    const k = Math.min(1, (D.clock - o.t0) / o.dur);
+    const deg = (o.from + (o.to - o.from) * k) * Math.PI / 180;
+    camera.position.set(o.target.x + Math.sin(deg) * o.radius, o.target.y + o.height, o.target.z + Math.cos(deg) * o.radius);
+    controls.target.copy(o.target);
+    controls.update();
+    if (k >= 1) D.orbit = null;
+    return;
+  }
+  if (D.camLerp) {
+    const k = Math.min(1, (D.clock - D.camLerp.t0) / D.camLerp.dur);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    camera.position.lerpVectors(D.camLerp.fromP, D.camLerp.toP, e);
+    controls.target.lerpVectors(D.camLerp.fromL, D.camLerp.toL, e);
+    controls.update();
+    if (k >= 1) D.camLerp = null;
+  }
+}
+
+// ---------- 场景 GLB ----------
+
+async function loadSceneGLB(file) {
+  status('切换场景 ' + file + ' …');
+  if (sceneGroup) { scene.remove(sceneGroup); disposeTree(sceneGroup); sceneGroup = null; }
+  ground.visible = !file;
+  if (!file) { status('已恢复默认草原'); return; }
+  try {
+    const gltf = await loadGLTF('/scenes/' + encodeURIComponent(file));
+    sceneGroup = gltf.scene;
+    const box = new THREE.Box3().setFromObject(sceneGroup);
+    const size = box.getSize(new THREE.Vector3());
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    sceneGroup.scale.setScalar(14 / maxDim);
+    const box2 = new THREE.Box3().setFromObject(sceneGroup);
+    const center = box2.getCenter(new THREE.Vector3());
+    sceneGroup.position.x -= center.x;
+    sceneGroup.position.z -= center.z;
+    sceneGroup.position.y -= box2.min.y;
+    scene.add(sceneGroup);
+    status('场景已切换: ' + file);
+  } catch (e) {
+    status('⚠ 场景加载失败: ' + e.message);
+    ground.visible = true;
+  }
+}
+
+function disposeTree(obj) {
+  obj.traverse(o => {
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) {
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose();
+        m.dispose();
+      }
+    }
+  });
+}
+
+// ---------- 环境光照 ----------
+
+const ENV = {
+  '白天': { sky: 0x87a8d0, sunC: 0xffffff, sunI: 1.6, sunP: [2, 4, 3] },
+  '黄昏': { sky: 0xf0a167, sunC: 0xff8c4d, sunI: 2.2, sunP: [-4, 1.5, 3] },
+  '夜晚': { sky: 0x0a0e1a, sunC: 0x8ca6ff, sunI: 0.5, sunP: [-3, 4, -2] },
+  '黎明': { sky: 0xe8b08c, sunC: 0xffb88c, sunI: 1.8, sunP: [5, 2, -3] },
+};
+let envLerp = null;
+function applyEnv(e) {
+  const p = ENV[e.preset] || ENV['白天'];
+  envLerp = { from: { sky: scene.background.clone(), sunC: sun.color.clone(), sunI: sun.intensity, sunP: sun.position.clone() },
+              to: p, t0: D.clock, dur: 1.2 };
+  document.querySelectorAll('#envBtns button').forEach(b => b.classList.toggle('on', b.dataset.env === e.preset));
+}
+function tickEnv() {
+  if (!envLerp) return;
+  const k = Math.min(1, (D.clock - envLerp.t0) / envLerp.dur);
+  scene.background.lerpColors(envLerp.from.sky, new THREE.Color(envLerp.to.sky), k);
+  sun.color.lerpColors(envLerp.from.sunC, new THREE.Color(envLerp.to.sunC), k);
+  sun.intensity = envLerp.from.sunI + (envLerp.to.sunI - envLerp.from.sunI) * k;
+  sun.position.lerpVectors(envLerp.from.sunP, new THREE.Vector3(...envLerp.to.sunP), k);
+  if (k >= 1) envLerp = null;
+}
+
+// ---------- 语音 / 字幕 / 背景音乐 ----------
+
+const SUB = { el: null, until: 0 };
+function showSub(text, dur) {
+  if (!SUB.el) SUB.el = $('#bigsub');
+  SUB.el.textContent = text;
+  SUB.el.style.display = text ? 'block' : 'none';
+  SUB.until = D.clock + dur;
+}
+
+const audioCtx = new AudioContext();
+const recDest = audioCtx.createMediaStreamDestination();
+const voiceEls = {};
+let bgmEl = null;
+function wireAudio(el) {
+  try {
+    const src = audioCtx.createMediaElementSource(el);
+    src.connect(audioCtx.destination);
+    src.connect(recDest);
+  } catch (e) { /* 已接线 */ }
+}
+function playVoiceFile(name, dur) {
+  let el = voiceEls[name];
+  if (!el) { el = new Audio('/voice/' + name); el.preload = 'auto'; wireAudio(el); voiceEls[name] = el; }
+  el.currentTime = 0;
+  el.play().catch(() => {});
+}
+function playBGM(file) {
+  if (!bgmEl) {
+    bgmEl = new Audio('/audio/' + (file || 'bgm.wav'));
+    bgmEl.loop = true;
+    wireAudio(bgmEl);
+  }
+  bgmEl.play().catch(() => {});
+}
+
+// ---------- 录制 ----------
+
+let rec = null, chunks = [];
+function startRec() {
+  const canvasStream = renderer.domElement.captureStream(30);
+  const stream = new MediaStream([...canvasStream.getVideoTracks(), ...recDest.stream.getAudioTracks()]);
+  chunks = [];
+  rec = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9,opus', videoBitsPerSecond: 8_000_000 });
+  rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  rec.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const a = document.createElement('a');
+    a.className = 'dl';
+    a.href = URL.createObjectURL(blob);
+    a.download = 'story_web.webm';
+    a.textContent = '⬇ 下载成片 story_web.webm (' + Math.round(blob.size / 1024) + ' KB)';
+    $('#downloads').appendChild(a);
+    $('#rec').style.display = 'none';
+    status('录制完成，文件在控制面板 ↓');
+    rec = null;
+  };
+  rec.start();
+  $('#rec').style.display = 'block';
+}
+
+// ---------- 主 tick ----------
+
+function tick(dt) {
+  if (!D.playing || D.ended) return;
+  D.clock += dt;
+  while (D.idx < D.events.length && D.events[D.idx].t <= D.clock) {
+    fire(D.events[D.idx]);
+    D.idx++;
+  }
+  for (const m of D.moves) {
+    const k = Math.min(1, Math.max(0, (D.clock - m.t0) / (m.t1 - m.t0)));
+    m.obj.position.lerpVectors(m.from, m.to, k);
+  }
+  tickEnv();
+  tickCam();
+  for (const id in D.actors) {
+    const a = D.actors[id];
+    if (a.actionName && a.actionName !== 'idle_loop' && D.clock > a.actionEnd && D.clock > a.voiceUntil) {
+      playAction(a, 'idle_loop', true);
+    }
+  }
+  if (SUB.until && D.clock > SUB.until) { SUB.el.style.display = 'none'; SUB.until = 0; }
+  $('#fill').style.width = Math.min(100, D.clock / D.total * 100) + '%';
+  $('#clock').textContent = D.clock.toFixed(1) + 's / ' + D.total.toFixed(0) + 's';
+}
+
+// ---------- 剧本运行入口 ----------
+
+async function runScript() {
+  await audioCtx.resume().catch(() => {});
+  const text = $('#script').value;
+  const parsed = parseScript(text);
+  D.total = 20;
+  for (const e of parsed.events) D.total = Math.max(D.total, e.t + 3);
+  // 补导入剧本里定义、还没导入的演员
+  for (const who in parsed.actorDefs) {
+    if (!D.actors[who]) {
+      await importActor(who, parsed.actorDefs[who]);
+      D.total += 2;
+    }
+  }
+  D.events = parsed.events;
+  D.idx = 0; D.clock = 0; D.moves = []; D.orbit = null; D.camLerp = null; D.envLerp = null; D.ended = false;
+  $('#theend').style.display = 'none';
+  for (const id in D.actors) playAction(D.actors[id], 'idle_loop', true);
+  D.playing = true;
+  status('演出中…（' + D.events.length + ' 个事件）');
+}
+
+function stopPlay() {
+  D.playing = false; D.ended = false;
+  $('#theend').style.display = 'none';
+  SUB.el && (SUB.el.style.display = 'none');
+  for (const id in D.actors) playAction(D.actors[id], 'idle_loop', true);
+  status('已停止');
+}
+
+$('#runBtn').addEventListener('click', () => { audioCtx.resume().catch(() => {}); runScript(); });
+$('#stopBtn').addEventListener('click', stopPlay);
+$('#recBtn').addEventListener('click', () => {
+  if (rec) return;
+  audioCtx.resume().catch(() => {});
+  runScript();
+  startRec();
+});
+
+// 调试暴露（自动化测试用）
+window.__wb = { D, renderer, scene, camera, controls, tick };
+
+// ---------- 剧本保存 / 读取 ----------
+
+const SCRIPT_FILE = 'story_web.json';
+const DEFAULT_SCRIPT = `演员 风 = 角色1.vrm
+演员 雪 = 角色2.vrm
+演员 夜 = 角色3.vrm
+
+0秒 光照 白天
+1秒 字幕 三个旅人，在草原相遇……
+2秒 [风] 挥手
+3秒 [风] 说 你们好呀！我是阿风。
+6秒 [雪] 鞠躬
+7秒 [雪] 说 欢迎你，阿风。我是雪。
+10秒 [夜] 敬礼
+11秒 [夜] 说 护卫，夜。前面的路不太平。
+14秒 镜头 环绕 8秒
+15秒 [风] 跳
+20秒 光照 黄昏
+21秒 字幕 暮色四合，篝火升起……
+24秒 [雪] 坐下
+25秒 [风] 拍手
+26秒 [夜] 吹口哨
+30秒 镜头 远景
+31秒 字幕 第一天，就这样结束了。
+`;
+
+$('#saveBtn').addEventListener('click', async () => {
+  $('#saveState').textContent = '保存中…';
+  try {
+    const r = await fetch('/api/save_script', { method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file: SCRIPT_FILE, text: $('#script').value }) });
+    const d = await r.json();
+    $('#saveState').textContent = d.ok ? '已保存 ✓' : '保存失败';
+    setTimeout(() => $('#saveState').textContent = '', 2500);
+  } catch (e) {
+    $('#saveState').textContent = '保存失败';
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault();
+    $('#saveBtn').click();
+  }
+});
+
+// ---------- 场景列表 ----------
+async function loadSceneList() {
+  try {
+    const files = await fetch('/api/scenes').then(r => r.json());
+    const sel = $('#sceneSel');
+    for (const f of files) {
+      const o = document.createElement('option');
+      o.value = f; o.textContent = f.replace(/\.glb$/i, '');
+      sel.appendChild(o);
+    }
+    sel.addEventListener('change', () => loadSceneGLB(sel.value));
+  } catch (e) { /* 忽略 */ }
+}
+
+// ---------- 初始化 ----------
+(async function init() {
+  // 读取已保存的剧本，没有就用默认模板
+  try {
+    const d = await fetch('/api/read_script?file=' + SCRIPT_FILE).then(r => r.json());
+    $('#script').value = d.text || DEFAULT_SCRIPT;
+  } catch {
+    $('#script').value = DEFAULT_SCRIPT;
+  }
+  await loadSceneList();
+  // 自动导入 models/ 里全部模型
+  try {
+    const list = await fetch('/api/list').then(r => r.json());
+    status('导入演员 …');
+    let i = 0;
+    for (const f of list.models) {
+      const id = f.replace(/\.vrm$/i, '');
+      if (!D.actors[id]) {
+        await importActor(id, f);
+        i++;
+      }
+    }
+    status('就绪。演员 ' + i + ' 名。在左侧写剧本，点"运行"。');
+    await loadSceneList();
+  } catch (e) {
+    status('初始化失败: ' + e.message);
+  }
+})();
+
+// ---------- 主循环 ----------
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const d = Math.min(clock.getDelta(), 0.1);
+  tick(d);
+  for (const id in D.actors) D.actors[id].mixer.update(d);
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
