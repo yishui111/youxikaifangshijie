@@ -1,7 +1,7 @@
 @echo off
 rem ============================================================
-rem  One-click STOP: kill the story-director server only
-rem  (matches by port 8642, does not touch other node apps)
+rem  One-click STOP: kill the story-director server (port 8642)
+rem  Only this server is stopped. Other programs are not touched.
 rem ============================================================
 set FOUND=0
 for /f "tokens=5" %%p in ('netstat -ano ^| findstr ":8642" ^| findstr "LISTENING"') do (
@@ -13,4 +13,4 @@ if %FOUND%==1 (
 ) else (
     echo server was not running.
 )
-timeout /t 2 >nul
+ping -n 3 127.0.0.1 >nul

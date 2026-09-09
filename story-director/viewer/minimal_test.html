@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>最小验证</title>
+<script type="importmap">
+{ "imports": {
+  "three": "/node_modules/three/build/three.module.js",
+  "three/addons/": "/node_modules/three/examples/jsm/",
+  "@pixiv/three-vrm": "/node_modules/@pixiv/three-vrm/lib/three-vrm.module.min.js",
+  "@pixiv/three-vrm-animation": "/node_modules/@pixiv/three-vrm-animation/lib/three-vrm-animation.module.min.js"
+} }
+</script>
+<style>
+body { margin: 0; background: #222; overflow: hidden; }
+canvas { display: block; }
+#info { position: fixed; top: 10px; left: 10px; color: #fff; font-family: monospace; font-size: 14px; text-shadow: 1px 1px 2px black; }
+</style>
+</head>
+<body>
+<div id="info">加载中…</div>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { VRMLoaderPlugin } from '@pixiv/three-vrm';
+import { VRMAnimationLoaderPlugin, createVRMAnimationClip } from '@pixiv/three-vrm-animation';
+
+const info = document.querySelector('#info');
+const log = (msg) => { info.textContent = msg; console.log(msg); };
+
+// 场景
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87a8d0);
+
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0, 1.4, 3);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1, 0);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir = new THREE.DirectionalLight(0xffffff, 1.5);
+dir.position.set(2, 4, 3);
+dir.castShadow = true;
+scene.add(dir);
+
+const ground = new THREE.Mesh(
+  new THREE.CircleGeometry(8, 32),
+  new THREE.MeshStandardMaterial({ color: 0x5d7a4a })
+);
+ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
+scene.add(ground);
+
+// 加载 VRM 模型
+log('加载模型…');
+const draco = new DRACOLoader();
+draco.setDecoderPath('/node_modules/three/examples/jsm/libs/draco/gltf/');
+const gltfLoader = new GLTFLoader();
+gltfLoader.setDRACOLoader(draco);
+gltfLoader.register((p) => new VRMLoaderPlugin(p));
+gltfLoader.register((p) => new VRMAnimationLoaderPlugin(p));
+
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+
+const vrmGltf = await new Promise((res, rej) =>
+  gltfLoader.load('/models/角色1.vrm', res, undefined, rej));
+const vrm = vrmGltf.userData.vrm;
+scene.add(vrm.scene);
+log('模型加载完成');
+
+// 加载 VRMA 动作
+log('加载动作…');
+const vrmaBuf = await (await fetch('/actions/avatar_hello.vrma')).arrayBuffer();
+const vrmaGltf = await new Promise((res, rej) =>
+  vrmaLoader.parse(vrmaBuf, '', res, rej));
+const vrmAnim = vrmaGltf.userData.vrmAnimations[0];
+log('动作时长: ' + vrmAnim.duration.toFixed(2) + 's');
+
+// 创建 AnimationClip
+const clip = createVRMAnimationClip(vrmAnim, vrm);
+const mixer = new THREE.AnimationMixer(vrm.scene);
+const action = mixer.clipAction(clip);
+action.play();
+log('播放中: ' + clip.duration.toFixed(2) + 's');
+
+// 渲染循环
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = clock.getDelta();
+  mixer.update(dt);
+  vrm.update(dt);
+  controls.update();
+  renderer.render(scene, camera);
+});
+log('运行中: 挥手动作循环播放');
+</script>
+</body>
+</html>

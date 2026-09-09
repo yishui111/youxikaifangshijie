@@ -183,6 +183,8 @@ const D = {
   moves: [], camLerp: null, orbit: null, envLerp: null,
 };
 let sceneGroup = null;
+let currentSceneFile = '';
+let currentEnv = '白天';
 
 // ---------- 演员导入 ----------
 async function importActor(id, file) {
@@ -580,6 +582,24 @@ $('#recBtn').addEventListener('click', () => {
 // 调试暴露（自动化测试用）
 window.__wb = { D, renderer, scene, camera, controls, tick };
 
+// ---------- 配置对齐（持久化到 config.json） ----------
+function currentConfig() {
+  return {
+    '剧本文本': $('#script').value,
+    '场景': currentSceneFile,
+    '光照': currentEnv,
+    '时长': D.total,
+    '演员': story['演员'] || [],
+  };
+}
+async function saveConfig() {
+  try {
+    await fetch('/api/config', { method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      body: JSON.stringify(currentConfig()) });
+  } catch (e) { /* 静默 */ }
+}
+
 // ---------- 剧本保存 / 读取 ----------
 
 const SCRIPT_FILE = 'story_web.json';
@@ -625,6 +645,19 @@ document.addEventListener('keydown', (e) => {
     $('#saveBtn').click();
   }
 });
+let saveTimer = 0;
+$('#script').addEventListener('input', () => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await fetch('/api/save_script', { method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({ file: SCRIPT_FILE, text: $('#script').value }) });
+      $('#saveState').textContent = '已自动保存 ✓';
+      setTimeout(() => $('#saveState').textContent = '', 1500);
+    } catch (e) { /* 静默 */ }
+  }, 800);
+});
 
 // ---------- 场景列表 ----------
 async function loadSceneList() {
@@ -636,9 +669,23 @@ async function loadSceneList() {
       o.value = f; o.textContent = f.replace(/\.glb$/i, '');
       sel.appendChild(o);
     }
-    sel.addEventListener('change', () => loadSceneGLB(sel.value));
+    sel.addEventListener('change', () => {
+      currentSceneFile = sel.value;
+      loadSceneGLB(sel.value);
+      saveConfig();
+    });
   } catch (e) { /* 忽略 */ }
 }
+
+// ---------- 环境光照按钮（手动切天气） ----------
+document.querySelectorAll('#envBtns button').forEach(b => b.addEventListener('click', () => {
+  const e = { 类型: '环境', 天气: b.dataset.env };
+  story['事件'].push({ ...e, 时间: +R.clock.toFixed(1) });
+  renderTimeline();
+  applyEnvEvent(e);
+  currentEnv = b.dataset.env;
+  saveConfig();
+}));
 
 // ---------- 初始化 ----------
 (async function init() {
@@ -664,6 +711,13 @@ async function loadSceneList() {
     }
     status('就绪。演员 ' + i + ' 名。在左侧写剧本，点"运行"。');
     await loadSceneList();
+    try {
+      const cfg = await fetch('/api/config').then(r => r.json());
+      if (cfg['场景']) { $('#sceneSel').value = cfg['场景']; currentSceneFile = cfg['场景']; loadSceneGLB(cfg['场景']); }
+      if (cfg['光照']) { applyEnv({ preset: cfg['光照'] }); currentEnv = cfg['光照']; }
+      if (cfg['剧本文本']) $('#script').value = cfg['剧本文本'];
+      status('就绪。已恢复上次配置。');
+    } catch (e) { /* 无配置时忽略 */ }
   } catch (e) {
     status('初始化失败: ' + e.message);
   }

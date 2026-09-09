@@ -121,6 +121,35 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // API：工作台配置（读取/保存，全部页面设置持久化到 config.json）
+  if (url === '/api/config' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => body += c);
+    req.on('end', () => {
+      try {
+        const d = JSON.parse(body);
+        fs.writeFileSync(path.join(ROOT, 'config.json'), JSON.stringify(d, null, 2), 'utf-8');
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true }));
+      } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('config save failed: ' + e.message);
+      }
+    });
+    return;
+  }
+  if (url === '/api/config') {
+    try {
+      const txt = fs.readFileSync(path.join(ROOT, 'config.json'), 'utf-8');
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(txt);
+    } catch {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({}));
+    }
+    return;
+  }
+
   // API：列出模型与动作
   if (url === '/api/list') {
     const models = fs.existsSync(path.join(ROOT, 'models'))
